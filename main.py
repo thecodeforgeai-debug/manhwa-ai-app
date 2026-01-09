@@ -104,18 +104,14 @@ def recommendation_tab():
         if not st.session_state.is_premium and st.session_state.rec_count >= FREE_RECS_PER_DAY:
             st.error(f"You've reached your daily limit of {FREE_RECS_PER_DAY} recommendations. Upgrade to Premium for unlimited access!")
             return
-
         if not genres and not tropes and not mood:
-        genre_list = [g.strip() for g in genres.split(",")] if genres else []
-        trope_list = [t.strip() for t in tropes.split(",")] if tropes else []
+        if not genres and not tropes and not mood:
+            genre_list = [g.strip() for g in genres.split(",")] if genres else []
+            trope_list = [t.strip() for t in tropes.split(",")] if tropes else []
 
         with st.spinner("🔮 Consulting the AI manhwa oracle..."):
-            genre_list = [g.strip() for g in genres.split(',')] if genres else []
-            trope_list = [t.strip() for t in tropes.split(',')] if tropes else []
 
             db_results = database.search_manhwa(
-                genres=genre_list if genre_list else None,
-                tropes=trope_list if trope_list else None,
                 limit=15
             )
 
