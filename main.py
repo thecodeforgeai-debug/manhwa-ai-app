@@ -1,9 +1,6 @@
 import streamlit as st
-import uuid
-from datetime import datetime
-import database
 import ai_engine
-from config import FREE_RECS_PER_DAY, PREMIUM_PRICE
+import database
 
 st.set_page_config(
     page_title="Manhwa AI Recommender",
@@ -11,177 +8,136 @@ st.set_page_config(
     layout="wide"
 )
 
-if 'user_id' not in st.session_state:
-    st.session_state.user_id = str(uuid.uuid4())
-if 'rec_count' not in st.session_state:
-    st.session_state.rec_count = 0
-if 'is_premium' not in st.session_state:
-    st.session_state.is_premium = False
+GENRES = [
+    "action", "romance", "fantasy", "drama", "comedy", "horror", "thriller",
+    "psychological", "isekai", "martial-arts", "sci-fi", "supernatural",
+    "adventure", "mystery", "school", "office", "historical", "apocalypse",
+    "game", "slice-of-life", "sports", "military"
+]
 
-def main():
-    with st.sidebar:
-        st.title("📚 Manhwa AI")
-        st.markdown("---")
-        st.markdown("### About")
-        st.info("""
-        Your AI-powered manhwa recommender!
+TROPES = [
+    "overpowered-mc", "weak-to-strong", "strong-female-lead", "time-travel",
+    "reincarnation", "regression", "revenge", "underdog-to-hero",
+    "enemies-to-lovers", "fake-dating", "contract-relationship", "boss-employee",
+    "love-triangle", "arranged-marriage", "age-gap", "game-elements",
+    "tower-climbing", "dungeon", "leveling", "survival", "smart-mc",
+    "found-family", "mentor-student", "magic", "cultivation", "mercenary",
+    "body-swap", "villain-protagonist", "anti-hero", "redemption",
+    "second-chance", "political-intrigue", "supernatural-powers", "monsters",
+    "bullying", "transformation", "curse"
+]
 
-        Get personalized recommendations based on genres, tropes, and mood.
+MOODS = [
+    "Action-packed and intense", "Light and funny", "Dark and serious",
+    "Romantic and sweet", "Emotional and touching", "Mysterious and suspenseful",
+    "Epic and grand", "Relaxing and wholesome", "Thrilling and scary",
+    "Inspiring and motivational"
+]
 
-        Analyze manhwa summaries to discover similar titles.
-        """)
+st.title("🎨 Manhwa AI Recommender")
+st.markdown("*Discover your next favorite manhwa with AI-powered recommendations*")
 
-        st.markdown("---")
-        st.markdown("### Your Usage")
-        st.write(f"Recommendations today: {st.session_state.rec_count}/{FREE_RECS_PER_DAY}")
+with st.sidebar:
+    st.header("📚 Manhwa AI")
+    st.markdown("---")
+    st.subheader("About")
+    st.markdown("Your AI-powered manhwa recommender! Get personalized recommendations based on genres, tropes, and mood.")
+    st.markdown("---")
+    st.subheader("Your Usage")
+    if 'recs_count' not in st.session_state:
+        st.session_state.recs_count = 0
+    st.metric("Recommendations today:", f"{st.session_state.recs_count}/3")
+    st.caption("Free tier: 3 recs/day")
+    st.button("⭐ Upgrade to Premium")
+    st.markdown("---")
+    st.subheader("Need Help?")
+    st.markdown("**Tips:**\n- Select multiple genres\n- Try different tropes\n- Mix and match!")
 
-        if not st.session_state.is_premium:
-            st.warning(f"Free tier: {FREE_RECS_PER_DAY} recs/day")
-            if st.button("🌟 Upgrade to Premium", use_container_width=True):
-                st.info(f"""
-                **Premium Benefits:**
-                - Unlimited recommendations
-                - Priority support
-                - Advanced features
+tab1, tab2 = st.tabs(["🔍 Get Recommendations", "🧠 Analyze Tropes"])
 
-                Only ${PREMIUM_PRICE}/month
-
-                [Payment integration coming soon]
-                """)
-        else:
-            st.success("✨ Premium Member")
-
-        st.markdown("---")
-        st.markdown("### Need Help?")
-        st.markdown("""
-        **Tips:**
-        - Be specific with genres/tropes
-        - Try different mood keywords
-        - Use the trope analyzer for summaries
-        """)
-
-    st.title("🎨 Manhwa AI Recommender")
-    st.markdown("*Discover your next favorite manhwa with AI-powered recommendations*")
-
-    tab1, tab2 = st.tabs(["🔍 Get Recommendations", "🧠 Analyze Tropes"])
-
-    with tab1:
-        recommendation_tab()
-
-    with tab2:
-        analysis_tab()
-
-def recommendation_tab():
+with tab1:
     st.header("Find Your Next Read")
-
     col1, col2 = st.columns(2)
-
+    
     with col1:
-        genres = st.text_input(
-            "Genres",
-            placeholder="e.g., romance, isekai, fantasy",
-            help="Enter genres separated by commas"
+        st.subheader("Genres")
+        selected_genres = st.multiselect(
+            "Select one or more genres",
+            options=GENRES,
+            default=["action"],
+            help="Choose the genres you're interested in"
         )
-
-        tropes = st.text_input(
-            "Tropes",
-            placeholder="e.g., enemies-to-lovers, reincarnation, strong-female-lead",
-            help="Enter tropes separated by commas"
-        )
-
+    
     with col2:
-        mood = st.text_input(
-            "Mood/Vibe",
-            placeholder="e.g., fluffy, dark, emotional, action-packed",
-            help="Describe the mood you're looking for"
+        st.subheader("Mood/Vibe")
+        selected_mood = st.selectbox(
+            "What vibe are you looking for?",
+            options=MOODS,
+            help="Select the mood that matches what you want"
         )
-
-        st.write("")
-        st.write("")
-        get_recs_button = st.button("✨ Get Recommendations", type="primary", use_container_width=True)
-
-    if get_recs_button:
-        if not st.session_state.is_premium and st.session_state.rec_count >= FREE_RECS_PER_DAY:
-            st.error(f"You've reached your daily limit of {FREE_RECS_PER_DAY} recommendations. Upgrade to Premium for unlimited access!")
-            return
-        if not genres and not tropes and not mood:
-            genre_list = [g.strip() for g in genres.split(",")] if genres else []
-            trope_list = [t.strip() for t in tropes.split(",")] if tropes else []
-
-        with st.spinner("🔮 Consulting the AI manhwa oracle..."):
-
-            db_results = database.search_manhwa(
-                limit=15
-            )
-
-            user_history = database.get_user_history(st.session_state.user_id, limit=3)
-
-            result = ai_engine.get_recommendations(
-                genres=genres,
-                tropes=tropes,
-                mood=mood,
-                
-                user_history=user_history if user_history else None
-            )
-
-            if result['success']:
-                st.success("✅ Here are your personalized recommendations!")
-                st.markdown(result['recommendations'])
-
-                rec_titles = [m['title'] for m in db_results[:5]]
-                database.save_user_history(
-                    st.session_state.user_id,
-                    genres,
-                    tropes,
-                    rec_titles
-                )
-
-                st.session_state.rec_count += 1
-                
-            else:
-                st.error(f"Error: {result.get('error', 'Unknown error')}")
-
-    with st.expander("📊 Database Stats"):
-        st.info(f"Currently tracking 10+ popular manhwa titles with more being added regularly!")
-
-def analysis_tab():
-    st.header("Analyze a Manhwa")
-
-    st.markdown("""
-    Paste a manhwa summary or description below, and AI will identify:
-    - Key genres and tropes
-    - Character archetypes
-    - Similar manhwa recommendations
-    """)
-
-    summary = st.text_area(
-        "Manhwa Summary",
-        placeholder="Paste the manhwa description here...\n\nExample: 'A woman wakes up as the villainess in a novel she read. Knowing she's destined to die, she tries to avoid the main characters but ends up changing the story...'",
-        height=200
+    
+    st.subheader("Tropes")
+    selected_tropes = st.multiselect(
+        "Select your favorite tropes (optional)",
+        options=TROPES,
+        help="Choose story elements you enjoy"
     )
-
-    analyze_button = st.button("🧠 Analyze", type="primary")
-
-    if analyze_button:
-        if not summary or len(summary.strip()) < 50:
-            st.warning("Please provide a longer summary (at least 50 characters) for better analysis")
-            return
-
-        if not st.session_state.is_premium and st.session_state.rec_count >= FREE_RECS_PER_DAY:
-            st.error(f"You've reached your daily limit of {FREE_RECS_PER_DAY} uses. Upgrade to Premium for unlimited access!")
-            return
-
-        with st.spinner("🔍 Analyzing tropes and patterns..."):
-            result = ai_engine.analyze_tropes(summary)
-
-            if result['success']:
-                st.success("✅ Analysis Complete!")
-                st.markdown(result['analysis'])
-
-                st.session_state.rec_count += 1
+    
+    if st.button("✨ Get Recommendations", type="primary", use_container_width=True):
+        if not selected_genres and not selected_tropes and not selected_mood:
+            st.warning("Please select at least one preference (genre, trope, or mood)")
+        elif st.session_state.recs_count >= 3:
+            st.error("You've reached your daily limit of 3 recommendations. Upgrade to Premium for unlimited access!")
+        else:
+            with st.spinner("🔮 Consulting the AI manhwa oracle..."):
+                user_history = database.get_user_history(st.session_state.get('user_id', 'default'), limit=3)
+                result = ai_engine.get_recommendations(
+                    genres=selected_genres if selected_genres else [],
+                    tropes=selected_tropes if selected_tropes else [],
+                    mood=selected_mood,
+                    user_history=user_history if user_history else None
+                )
                 
-            else:
-                st.error(f"Error: {result.get('error', 'Unknown error')}")
+                if result['success']:
+                    st.success("✅ Here are your personalized recommendations!")
+                    st.markdown(result['recommendations'])
+                    st.session_state.recs_count += 1
+                else:
+                    st.error(f"Error: {result.get('error', 'Unknown error')}")
+    
+    with st.expander("📊 Database Stats"):
+        stats = database.get_stats()
+        if stats:
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                st.metric("Total Manhwa", stats.get('total', 0))
+            with col2:
+                st.metric("Genres", len(set(GENRES)))
+            with col3:
+                st.metric("Tropes", len(set(TROPES)))
 
-if __name__ == "__main__":
-    main()
+with tab2:
+    st.header("Analyze Manhwa Tropes")
+    st.markdown("Enter a manhwa summary to discover what tropes it contains!")
+    
+    manhwa_summary = st.text_area(
+        "Paste manhwa summary here:",
+        height=150,
+        placeholder="Enter a plot summary...",
+        help="Paste a summary from anywhere"
+    )
+    
+    if st.button("🔍 Analyze Tropes", type="primary", use_container_width=True):
+        if not manhwa_summary:
+            st.warning("Please enter a manhwa summary to analyze")
+        else:
+            with st.spinner("🧠 Analyzing tropes..."):
+                result = ai_engine.analyze_tropes(manhwa_summary)
+                if result['success']:
+                    st.success("✅ Analysis complete!")
+                    st.markdown(result['analysis'])
+                else:
+                    st.error(f"Error: {result.get('error', 'Unknown error')}")
+
+st.markdown("---")
+st.caption("Made with ❤️ using Claude AI")
