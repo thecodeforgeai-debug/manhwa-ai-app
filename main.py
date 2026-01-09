@@ -106,8 +106,8 @@ def recommendation_tab():
             return
 
         if not genres and not tropes and not mood:
-            st.warning("Please enter at least one preference (genre, trope, or mood)")
-            return
+        genre_list = [g.strip() for g in genres.split(",")] if genres else []
+        trope_list = [t.strip() for t in tropes.split(",")] if tropes else []
 
         with st.spinner("🔮 Consulting the AI manhwa oracle..."):
             genre_list = [g.strip() for g in genres.split(',')] if genres else []
