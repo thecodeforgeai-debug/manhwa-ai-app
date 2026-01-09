@@ -125,7 +125,7 @@ def recommendation_tab():
                 genres=genres,
                 tropes=tropes,
                 mood=mood,
-                db_results=db_results,
+                
                 user_history=user_history if user_history else None
             )
 
