@@ -4,10 +4,8 @@ from config import ANTHROPIC_API_KEY, CLAUDE_MODEL, MAX_TOKENS, TEMPERATURE
 def get_recommendations(genres, tropes, mood, user_history=None):
     """Get manhwa recommendations from Claude"""
     try:
-        # Initialize client with just the API key
         client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
         
-        # Build the prompt
         prompt = f"""You are a manhwa recommendation expert. Based on the following preferences, recommend 3 manhwa titles with brief descriptions.
 
 Genres: {', '.join(genres)}
@@ -20,7 +18,7 @@ Format your response as:
 
 **1. [Title]**
 *Genres: [genres]*
-[2-3 sentence description highlighting why it matches their preferences]
+[2-3 sentence description]
 
 **2. [Title]**
 *Genres: [genres]*
@@ -28,11 +26,8 @@ Format your response as:
 
 **3. [Title]**
 *Genres: [genres]*
-[2-3 sentence description]
+[2-3 sentence description]"""
 
-Focus on popular, well-regarded manhwa that match the requested preferences."""
-
-        # Make API call
         message = client.messages.create(
             model=CLAUDE_MODEL,
             max_tokens=MAX_TOKENS,
@@ -40,10 +35,19 @@ Focus on popular, well-regarded manhwa that match the requested preferences."""
             messages=[{"role": "user", "content": prompt}]
         )
         
-        return message.content[0].text
+        recommendations_text = message.content[0].text
+        
+        # Return as a dictionary for main.py
+        return {
+            'success': True,
+            'recommendations': recommendations_text
+        }
         
     except Exception as e:
-        raise Exception(f"Error getting recommendations: {str(e)}")
+        return {
+            'success': False,
+            'error': str(e)
+        }
 
 def analyze_tropes(manhwa_summary):
     """Analyze a manhwa summary and identify tropes"""
@@ -54,7 +58,7 @@ def analyze_tropes(manhwa_summary):
 
 Summary: {manhwa_summary}
 
-List 3-5 tropes and explain how they appear. Keep it concise."""
+List 3-5 tropes and explain how they appear."""
 
         message = client.messages.create(
             model=CLAUDE_MODEL,
@@ -63,7 +67,13 @@ List 3-5 tropes and explain how they appear. Keep it concise."""
             messages=[{"role": "user", "content": prompt}]
         )
         
-        return message.content[0].text
+        return {
+            'success': True,
+            'analysis': message.content[0].text
+        }
         
     except Exception as e:
-        raise Exception(f"Error analyzing tropes: {str(e)}")
+        return {
+            'success': False,
+            'error': str(e)
+        }
