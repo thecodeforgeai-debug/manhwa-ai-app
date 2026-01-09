@@ -170,3 +170,27 @@ if __name__ == "__main__":
     init_database()
     populate_sample_data()
     print("Database setup complete!")
+
+def get_stats():
+    """Get database statistics"""
+    try:
+        import sqlite3
+        conn = sqlite3.connect('data/manhwa.db')
+        cursor = conn.cursor()
+        
+        cursor.execute("SELECT COUNT(*) FROM manhwa")
+        total = cursor.fetchone()[0]
+        
+        conn.close()
+        
+        return {
+            'total': total
+        }
+    except Exception as e:
+        print(f"Error getting stats: {e}")
+        return {'total': 0}
+
+def get_user_history(user_id, limit=3):
+    """Get user recommendation history (placeholder for now)"""
+    # This is a placeholder - you can implement actual history tracking later
+    return []
