@@ -194,3 +194,51 @@ def get_user_history(user_id, limit=3):
     """Get user recommendation history (placeholder for now)"""
     # This is a placeholder - you can implement actual history tracking later
     return []
+
+def get_trending_manhwa(limit=10, timeframe='daily'):
+    """Get trending manhwa"""
+    try:
+        import sqlite3
+        conn = sqlite3.connect('data/manhwa.db')
+        cursor = conn.cursor()
+        
+        score_column = 'daily_score' if timeframe == 'daily' else 'weekly_score'
+        
+        cursor.execute(f"""
+            SELECT ts.trending_rank, ts.title, m.genres, ts.{score_column}, 
+                   ts.recommendation_count, m.description
+            FROM trending_scores ts
+            JOIN manhwa m ON ts.title = m.title
+            WHERE ts.{score_column} > 0
+            ORDER BY ts.trending_rank
+            LIMIT ?
+        """, (limit,))
+        
+        results = cursor.fetchall()
+        conn.close()
+        return results
+    except Exception as e:
+        print(f"Error: {e}")
+        return []
+
+def update_trending_ranks():
+    """Update trending ranks"""
+    try:
+        import sqlite3
+        conn = sqlite3.connect('data/manhwa.db')
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            UPDATE trending_scores
+            SET trending_rank = (
+                SELECT COUNT(*) + 1
+                FROM trending_scores t2
+                WHERE (t2.daily_score * 2 + t2.weekly_score) > 
+                      (trending_scores.daily_score * 2 + trending_scores.weekly_score)
+            )
+        """)
+        
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        print(f"Error: {e}")
