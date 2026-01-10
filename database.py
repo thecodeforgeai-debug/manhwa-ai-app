@@ -209,7 +209,7 @@ def get_trending_manhwa(limit=10, timeframe='daily'):
                    ts.recommendation_count, m.description
             FROM trending_scores ts
             JOIN manhwa m ON ts.title = m.title
-            WHERE ts.{score_column} > 0
+            WHERE 1=1
             ORDER BY ts.trending_rank
             LIMIT ?
         """, (limit,))
