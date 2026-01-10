@@ -196,21 +196,20 @@ def get_user_history(user_id, limit=3):
     return []
 
 def get_trending_manhwa(limit=10, timeframe='daily'):
-    """Get trending manhwa"""
+    """Get trending manhwa by recommendations"""
     try:
         import sqlite3
         conn = sqlite3.connect('data/manhwa.db')
         cursor = conn.cursor()
         
-        score_column = 'daily_score' if timeframe == 'daily' else 'weekly_score'
-        
-        cursor.execute(f"""
-            SELECT ts.trending_rank, ts.title, m.genres, ts.{score_column}, 
-                   ts.recommendation_count, m.description
+        cursor.execute("""
+            SELECT 
+                ROW_NUMBER() OVER (ORDER BY ts.recommendation_count DESC, ts.daily_score DESC) as rank,
+                ts.title, m.genres, ts.daily_score, 
+                ts.recommendation_count, m.description
             FROM trending_scores ts
             JOIN manhwa m ON ts.title = m.title
-            WHERE 1=1
-            ORDER BY ts.trending_rank
+            ORDER BY ts.recommendation_count DESC, ts.daily_score DESC
             LIMIT ?
         """, (limit,))
         
