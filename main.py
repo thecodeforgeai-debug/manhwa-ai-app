@@ -215,3 +215,173 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
                            
+# Cyber Seoul Main App
+def main():
+    # HEADER with glitch effect
+    st.markdown("<h1 class='glitch-text' data-text='MANHWA AI RECOMMENDER'>MANHWA AI RECOMMENDER</h1>", unsafe_allow_html=True)
+    st.markdown("<h3 style='text-align: center; color: #a0a0ff;'>Discover your next favorite manhwa with neural-powered recommendations</h3>", unsafe_allow_html=True)
+    
+    # Split-screen columns (60/40 split)
+    col_left, col_right = st.columns([1.5, 1])
+    
+    with col_left:
+        # TRENDING TODAY - Gangnam District
+        st.markdown("<h2>𓊝 TRENDING DISTRICT</h2>", unsafe_allow_html=True)
+        st.markdown("<p style='color: #a0a0ff; font-size: 16px;'>Neural scan of Gangnam's most discussed titles</p>", unsafe_allow_html=True)
+        
+        # Card 1 - Solo Leveling
+        with st.container():
+            st.markdown("<div class='cyber-card'>", unsafe_allow_html=True)
+            st.markdown("<div style='display: flex; align-items: center;'>", unsafe_allow_html=True)
+            st.markdown("<div class='rank-badge'>1</div><h3 style='margin: 0;'>SOLO LEVELING</h3>", unsafe_allow_html=True)
+            st.markdown("</div>", unsafe_allow_html=True)
+            
+            # Metrics row
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                st.markdown("<div class='cyber-metric'>892</div>", unsafe_allow_html=True)
+                st.markdown("<div class='cyber-metric-label'>TODAY'S SCORE</div>", unsafe_allow_html=True)
+            with col2:
+                st.markdown("<div class='cyber-metric'>2,847</div>", unsafe_allow_html=True)
+                st.markdown("<div class='cyber-metric-label'>TOTAL SCAN</div>", unsafe_allow_html=True)
+            with col3:
+                st.markdown("<div style='background: linear-gradient(45deg, #00ff00, #00ffff); padding: 10px 15px; border-radius: 20px; text-align: center;'>", unsafe_allow_html=True)
+                st.markdown("<div style='color: #0a0a1a; font-weight: 900; font-size: 18px;'>+127</div>", unsafe_allow_html=True)
+                st.markdown("<div style='color: #0a0a1a; font-size: 12px;'>TODAY</div>", unsafe_allow_html=True)
+                st.markdown("</div>", unsafe_allow_html=True)
+            
+            st.markdown("<div style='color: #00ffff; margin-top: 15px; font-size: 16px; letter-spacing: 1px;'>ACTION · FANTASY · GAME ELEMENTS</div>", unsafe_allow_html=True)
+            st.markdown("</div>", unsafe_allow_html=True)
+        
+        # Card 2 - The Beginning After The End
+        with st.container():
+            st.markdown("<div class='cyber-card'>", unsafe_allow_html=True)
+            st.markdown("<div style='display: flex; align-items: center;'>", unsafe_allow_html=True)
+            st.markdown("<div class='rank-badge'>2</div><h3 style='margin: 0;'>THE BEGINNING AFTER THE END</h3>", unsafe_allow_html=True)
+            st.markdown("</div>", unsafe_allow_html=True)
+            
+            st.markdown("<div style='color: #ff00ff; margin: 10px 0;'>FANTASY · REINCARNATION</div>", unsafe_allow_html=True)
+            st.markdown("<div class='cyber-metric'>745</div>", unsafe_allow_html=True)
+            st.markdown("</div>", unsafe_allow_html=True)
+        
+        # Card 3 - Omniscient Reader
+        with st.container():
+            st.markdown("<div class='cyber-card'>", unsafe_allow_html=True)
+            st.markdown("<div style='display: flex; align-items: center;'>", unsafe_allow_html=True)
+            st.markdown("<div class='rank-badge'>3</div><h3 style='margin: 0;'>OMNISCIENT READER</h3>", unsafe_allow_html=True)
+            st.markdown("</div>", unsafe_allow_html=True)
+            
+            st.markdown("<div style='color: #ff00ff; margin: 10px 0;'>FANTASY · APOCALYPSE</div>", unsafe_allow_html=True)
+            st.markdown("<div class='cyber-metric'>698</div>", unsafe_allow_html=True)
+            st.markdown("</div>", unsafe_allow_html=True)
+        
+        # Action Buttons
+        st.markdown("<div style='margin-top: 30px;'>", unsafe_allow_html=True)
+        if st.button("𓊝 INITIATE RECOMMENDATION SCAN", key="scan_btn"):
+            st.session_state.scan_initiated = True
+        
+        if st.button("𓊝 ANALYZE NEURAL PATTERNS", key="analyze_btn"):
+            st.session_state.analyze = True
+        st.markdown("</div>", unsafe_allow_html=True)
+    
+    with col_right:
+        # NEURAL INTERFACE
+        st.markdown("<h2>𓊝 NEURAL INTERFACE</h2>", unsafe_allow_html=True)
+        
+        # Genres Selector
+        st.markdown("<div class='cyber-card'>", unsafe_allow_html=True)
+        st.markdown("<h3 style='color: #00ffff; margin-top: 0;'>GENRES</h3>", unsafe_allow_html=True)
+        genres = st.multiselect(
+            "Select neural preferences",
+            ["ACTION", "FANTASY", "CYBERPUNK", "ROMANCE", "THRILLER", "MYSTERY", "SCIFI", "SUPERNATURAL"],
+            default=["ACTION", "FANTASY"],
+            label_visibility="collapsed"
+        )
+        st.markdown("</div>", unsafe_allow_html=True)
+        
+        # Mood Selector
+        st.markdown("<div class='cyber-card'>", unsafe_allow_html=True)
+        st.markdown("<h3 style='color: #00ffff; margin-top: 0;'>MOOD/VIBE</h3>", unsafe_allow_html=True)
+        mood = st.selectbox(
+            "Select neural frequency",
+            ["ACTION-PACKED AND INTENSE", "CYBERNOIR MYSTERY", "NEON ROMANCE", "EPIC FANTASY", "PSYCHOLOGICAL THRILLER"],
+            index=0,
+            label_visibility="collapsed"
+        )
+        st.markdown("</div>", unsafe_allow_html=True)
+        
+        # Tropes Selector
+        st.markdown("<div class='cyber-card'>", unsafe_allow_html=True)
+        st.markdown("<h3 style='color: #00ffff; margin-top: 0;'>TROPES (OPTIONAL)</h3>", unsafe_allow_html=True)
+        tropes = st.multiselect(
+            "Select narrative patterns",
+            ["SYSTEM", "REINCARNATION", "CYBER-ENHANCEMENT", "TIME TRAVEL", "DUNGEON CRAWL", "APOCALYPSE"],
+            label_visibility="collapsed"
+        )
+        st.markdown("</div>", unsafe_allow_html=True)
+        
+        # Scan Button
+        if st.button("𓊝 INITIATE DEEP SCAN", key="deep_scan"):
+            st.session_state.deep_scan = True
+        
+        # Results Display
+        if st.session_state.get('scan_initiated', False) or st.session_state.get('deep_scan', False):
+            st.markdown("<div class='cyber-card' style='border-image: linear-gradient(45deg, #00ff00, #00ffff) 1;'>", unsafe_allow_html=True)
+            st.markdown("<h3 style='color: #00ff00;'>𓊝 NEURAL SCAN RESULTS</h3>", unsafe_allow_html=True)
+            
+            results = [
+                {"title": "SOLO LEVELING", "match": "98%", "status": "𓊝 OPTIMAL MATCH"},
+                {"title": "OMNISCIENT READER", "match": "92%", "status": "𓊝 HIGH SYNC"},
+                {"title": "TOWER OF GOD", "match": "87%", "status": "𓊝 NEURAL COMPATIBLE"}
+            ]
+            
+            for result in results:
+                col_a, col_b = st.columns([3, 1])
+                with col_a:
+                    st.markdown(f"**{result['title']}**")
+                    st.markdown(f"<div style='color: #a0a0ff; font-size: 14px;'>{result['status']}</div>", unsafe_allow_html=True)
+                with col_b:
+                    st.markdown(f"<div style='background: linear-gradient(45deg, #00ff00, #00ffff); color: #0a0a1a; padding: 5px 10px; border-radius: 15px; text-align: center; font-weight: 900;'>{result['match']}</div>", unsafe_allow_html=True)
+                st.markdown("---")
+            st.markdown("</div>", unsafe_allow_html=True)
+        
+        # System Status
+        st.markdown("<div class='cyber-card'>", unsafe_allow_html=True)
+        st.markdown("<h3 style='color: #00ffff; margin-top: 0;'>𓊝 SYSTEM STATUS</h3>", unsafe_allow_html=True)
+        st.markdown("<div class='cyber-metric'>2/3</div>", unsafe_allow_html=True)
+        st.markdown("<div style='color: #a0a0ff;'>NEURAL QUERIES TODAY</div>", unsafe_allow_html=True)
+        st.markdown("<div style='color: #8888ff; font-size: 14px; margin-top: 10px;'>FREE TIER: 3 RESULTS PER CYCLE</div>", unsafe_allow_html=True)
+        st.markdown("</div>", unsafe_allow_html=True)
+    
+    # Upgrade Banner
+    st.markdown("""
+    <div style='
+        background: linear-gradient(45deg, #ff00ff, #00ffff);
+        color: #0a0a1a;
+        padding: 20px;
+        border-radius: 10px;
+        text-align: center;
+        margin: 30px 0;
+        font-weight: 900;
+        font-size: 24px;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        box-shadow: 0 0 30px rgba(255, 0, 255, 0.5);
+        animation: neonPulse 2s infinite;
+    '>
+    𓊝 UPGRADE TO NEURAL PREMIUM 𓊝
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Terminal Footer
+    st.markdown("<div style='color: #00ff00; font-family: monospace; font-size: 12px; text-align: center; border-top: 1px solid #00ffff; padding-top: 10px;'>", unsafe_allow_html=True)
+    st.markdown("𓊝 SYSTEM: ONLINE | NEURAL NET: ACTIVE | GANGSEC: STABLE 𓊝", unsafe_allow_html=True)
+    st.markdown("</div>", unsafe_allow_html=True)
+
+# Initialize session state
+for key in ['scan_initiated', 'analyze', 'deep_scan']:
+    if key not in st.session_state:
+        st.session_state[key] = False
+
+if __name__ == "__main__":
+    main()
