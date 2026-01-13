@@ -1,4 +1,5 @@
-# CYBER NOIR - Eye-friendly cyber theme
+import streamlit as st
+#  CYBER NOIR - Eye-friendly cyber theme
 st.markdown("""
 <style>
     /* CYBER NOIR BASE - Softer on eyes */
