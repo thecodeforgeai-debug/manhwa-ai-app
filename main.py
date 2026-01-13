@@ -1,4 +1,11 @@
 import streamlit as st
+# Page config
+st.set_page_config(
+    page_title="MANHWA AI RECOMMENDER",
+    page_icon="📚",
+    layout="wide",
+    initial_sidebar_state="collapsed"
+)
 #  CYBER NOIR - Eye-friendly cyber theme
 st.markdown("""
 <style>
