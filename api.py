@@ -19,7 +19,8 @@ def get_trending():
 def recommend(request: dict):
     genres = request.get("genres", [])
     mood = request.get("mood", "exciting")
-    result = get_recommendations(genres, [], mood)
+    history = request.get("history", [])
+    result = get_recommendations(genres, [], mood, history)
     
     if not result.get('success'):
         return {"recommendations": []}
