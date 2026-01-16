@@ -13,7 +13,7 @@ except Exception as e:
 # Configuration
 CLAUDE_MODEL = "claude-sonnet-4-20250514"
 MAX_TOKENS = 1024
-TEMPERATURE = 0.7
+TEMPERATURE = 1.0
 DB_PATH = "data/manhwa.db"
 FREE_RECS_PER_DAY = 3
 PREMIUM_PRICE = 4.99

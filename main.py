@@ -224,6 +224,9 @@ def main():
             label_visibility="collapsed"
         )
         st.markdown("</div>", unsafe_allow_html=True)
+        # Initialize recommendation history
+        if 'rec_history' not in st.session_state:
+            st.session_state.rec_history = []
         
         # Tropes Selector
         st.markdown("<div class='cyber-card'>", unsafe_allow_html=True)
@@ -247,10 +250,11 @@ def main():
                 try:
                     api_response = requests.post(
                         "https://fuzzy-space-system-7v6gv6qwq79xfw5w6-8000.app.github.dev/recommend",
-                        json={"genres": genres, "mood": mood},
+                        json={"genres": genres, "mood": mood, "history": st.session_state.rec_history},
                         timeout=30
                     )
                     results = [item["title"] for item in api_response.json().get("recommendations", [])]
+                    st.session_state.rec_history.extend(results)  # Track recommendations
                 except Exception as e:
                     st.error(f"API Error: {str(e)}")
                     results = ["AI Error - Please try again"]
@@ -267,21 +271,9 @@ def main():
 
             st.markdown("</div>", unsafe_allow_html=True)
 
-            # Call AI API for recommendations
-    try:
-                api_response = requests.post(
-                    "https://fuzzy-space-system-7v6gv6qwq79xfw5w6-8000.app.github.dev/recommend",
-                    json={"genres": genres},
-                    timeout=30
-                )
-                results = [item["title"] for item in api_response.json().get("recommendations", [])]
-    except Exception as e:
-                st.error(f"API Error: {str(e)}")
-                results = ["AI Error - Please try again"]
-
     
 
-                st.markdown("</div>", unsafe_allow_html=True)
+            st.markdown("</div>", unsafe_allow_html=True)
 
 # ===============================
 # RUN
