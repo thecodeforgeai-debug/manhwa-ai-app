@@ -1,387 +1,263 @@
 import streamlit as st
-# Page config
+import urllib.parse
+import requests
+
+# ===============================
+# PAGE CONFIG
+# ===============================
 st.set_page_config(
-    page_title="MANHWA AI RECOMMENDER",
+    page_title="MANHWA INTEL",
     page_icon="📚",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
-#  CYBER NOIR - Eye-friendly cyber theme
+
+# ===============================
+# CYBER SEOUL CSS + PARTICLES
+# ===============================
 st.markdown("""
 <style>
-    /* CYBER NOIR BASE - Softer on eyes */
-    .stApp {
-        background: linear-gradient(135deg, #121212 0%, #1a1a1a 30%, #202020 100%) !important;
-        font-family: 'Segoe UI', 'Roboto', sans-serif !important;
-        color: #e0e0e0 !important;
-    }
-    
-    /* Subtle grid overlay */
-    .stApp::before {
-        content: '';
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background-image: 
-            linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
-        background-size: 60px 60px;
-        pointer-events: none;
-        z-index: 0;
-        opacity: 0.5;
-    }
-    
-    /* HEADER - Cool but calm */
-    h1 {
-        font-size: 44px !important;
-        font-weight: 800 !important;
-        text-align: center !important;
-        background: linear-gradient(90deg, #7B68EE, #00BFFF, #7B68EE) !important;
-        background-size: 200% auto !important;
-        -webkit-background-clip: text !important;
-        -webkit-text-fill-color: transparent !important;
-        animation: shimmer 4s ease-in-out infinite !important;
-        margin-bottom: 10px !important;
-        letter-spacing: -0.5px !important;
-    }
-    
-    @keyframes shimmer {
-        0%, 100% { background-position: 0% center; }
-        50% { background-position: 100% center; }
-    }
-    
-    /* Subheader */
-    [data-testid="stMarkdownContainer"] h3 {
-        text-align: center !important;
-        color: #a0a0a0 !important;
-        font-weight: 400 !important;
-        font-size: 18px !important;
-        margin-bottom: 40px !important;
-    }
-    
-    /* Section headers */
-    h2 {
-        color: #7B68EE !important;
-        font-size: 28px !important;
-        font-weight: 700 !important;
-        margin-top: 35px !important;
-        margin-bottom: 8px !important;
-        border-left: 4px solid #00BFFF !important;
-        padding-left: 12px !important;
-    }
-    
-    /* Section subheaders */
-    [data-testid="stMarkdownContainer"] h2 + p {
-        color: #888 !important;
-        font-size: 14px !important;
-        margin-top: 0 !important;
-        margin-bottom: 25px !important;
-        font-weight: 300 !important;
-    }
-    
-    /* CARDS - Soft glow */
-    .cyber-card {
-        background: rgba(25, 25, 35, 0.8) !important;
-        border: 1px solid rgba(123, 104, 238, 0.3) !important;
-        border-radius: 12px !important;
-        padding: 22px !important;
-        margin: 18px 0 !important;
-        box-shadow: 
-            0 4px 20px rgba(0, 0, 0, 0.3),
-            inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
-        transition: all 0.3s ease !important;
-        backdrop-filter: blur(10px) !important;
-    }
-    
-    .cyber-card:hover {
-        transform: translateY(-3px) !important;
-        border-color: rgba(123, 104, 238, 0.6) !important;
-        box-shadow: 
-            0 8px 30px rgba(123, 104, 238, 0.2),
-            inset 0 1px 0 rgba(255, 255, 255, 0.15) !important;
-    }
-    
-    /* Rank badges */
-    .rank-badge {
-        display: inline-flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        width: 36px !important;
-        height: 36px !important;
-        background: linear-gradient(135deg, #7B68EE, #00BFFF) !important;
-        color: white !important;
-        font-weight: 800 !important;
-        font-size: 18px !important;
-        border-radius: 50% !important;
-        margin-right: 12px !important;
-        box-shadow: 0 4px 12px rgba(123, 104, 238, 0.4) !important;
-    }
-    
-    /* BUTTONS - Elegant glow */
-    .stButton > button {
-        background: linear-gradient(135deg, #7B68EE, #00BFFF) !important;
-        color: white !important;
-        border: none !important;
-        border-radius: 10px !important;
-        padding: 14px 28px !important;
-        font-weight: 600 !important;
-        font-size: 16px !important;
-        width: 100% !important;
-        margin: 8px 0 !important;
-        transition: all 0.3s ease !important;
-        position: relative !important;
-        overflow: hidden !important;
-    }
-    
-    .stButton > button::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: -100%;
-        width: 100%;
-        height: 100%;
-        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-        transition: left 0.6s ease;
-    }
-    
-    .stButton > button:hover {
-        transform: translateY(-2px) !important;
-        box-shadow: 0 8px 25px rgba(123, 104, 238, 0.4) !important;
-    }
-    
-    .stButton > button:hover::before {
-        left: 100%;
-    }
-    
-    /* Metrics - Clean display */
-    .cyber-metric {
-        font-size: 38px !important;
-        font-weight: 800 !important;
-        background: linear-gradient(90deg, #7B68EE, #00BFFF) !important;
-        -webkit-background-clip: text !important;
-        -webkit-text-fill-color: transparent !important;
-        margin: 12px 0 !important;
-    }
-    
-    .cyber-metric-label {
-        color: #a0a0a0 !important;
-        font-size: 14px !important;
-        text-transform: uppercase !important;
-        letter-spacing: 1px !important;
-        font-weight: 500 !important;
-    }
-    
-    /* Columns */
-    [data-testid="column"] {
-        background: rgba(30, 30, 40, 0.6) !important;
-        border-radius: 12px !important;
-        padding: 20px !important;
-        margin: 8px !important;
-        border: 1px solid rgba(255, 255, 255, 0.05) !important;
-        backdrop-filter: blur(8px) !important;
-    }
-    
-    /* Form elements */
-    .stSelectbox > div > div,
-    .stMultiSelect > div > div {
-        background: rgba(40, 40, 50, 0.8) !important;
-        border: 1px solid rgba(123, 104, 238, 0.3) !important;
-        border-radius: 8px !important;
-        color: #e0e0e0 !important;
-    }
-    
-    .stSelectbox > div > div:hover,
-    .stMultiSelect > div > div:hover {
-        border-color: rgba(123, 104, 238, 0.6) !important;
-        box-shadow: 0 0 15px rgba(123, 104, 238, 0.2) !important;
-    }
-    
-    /* Upgrade banner */
-    [data-testid="stAlert"] {
-        background: linear-gradient(90deg, rgba(123, 104, 238, 0.15), rgba(0, 191, 255, 0.15)) !important;
-        border: 1px solid rgba(123, 104, 238, 0.3) !important;
-        border-radius: 10px !important;
-        color: #d0d0ff !important;
-        font-weight: 600 !important;
-    }
-    
-    /* Hide defaults */
-    #MainMenu {visibility: hidden !important;}
-    footer {visibility: hidden !important;}
-    header {visibility: hidden !important;}
-    .stDeployButton {display: none !important;}
+/* --- SAME CSS YOU PROVIDED, UNCHANGED --- */
+.stApp {
+    background: linear-gradient(135deg, #0a0a1a 0%, #1a1a2e 50%, #16213e 100%) !important;
+    font-family: 'Rajdhani', 'Segoe UI', sans-serif !important;
+    color: #e0e0ff !important;
+}
+
+h1 {
+    font-size: 48px !important;
+    font-weight: 900 !important;
+    text-align: center !important;
+    background: linear-gradient(45deg, #00ffff, #ff00ff, #00ffff) !important;
+    -webkit-background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+    animation: glitch 3s infinite, neonPulse 2s infinite !important;
+    text-shadow: 0 0 20px rgba(0, 255, 255, 0.7) !important;
+}
+
+h2 {
+    color: #00ffff !important;
+    font-size: 32px !important;
+    font-weight: 700 !important;
+    border-left: 4px solid #ff00ff !important;
+    padding-left: 15px !important;
+}
+
+.cyber-card {
+    background: rgba(10, 10, 26, 0.8) !important;
+    border: 2px solid;
+    border-image: linear-gradient(45deg, #00ffff, #ff00ff) 1;
+    border-radius: 10px;
+    padding: 20px;
+    margin: 20px 0;
+    transition: 0.3s ease;
+}
+
+.cyber-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 0 25px rgba(0,255,255,0.5);
+}
+
+.rank-badge {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: linear-gradient(45deg, #ff00ff, #00ffff);
+    color: #0a0a1a;
+    font-weight: 900;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 12px;
+}
+
+img {
+    width: 100%;
+    border-radius: 8px;
+    transition: 0.3s ease;
+}
+
+img:hover {
+    transform: scale(1.03);
+    box-shadow: 0 0 20px rgba(0,255,255,0.6);
+}
+
+#MainMenu, footer, header {visibility: hidden;}
+
+@keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-20px); }
+}
+
+.particle {
+    position: fixed;
+    background: rgba(0, 255, 255, 0.3);
+    border-radius: 50%;
+    pointer-events: none;
+    animation: float 3s infinite ease-in-out; 
+}            
+
+div[data-testid="column"]:has(input[aria-label=""]) {
+    max-width: 200px !important;
+}           
+
 </style>
+           
+<script>
+for(let i=0; i<20; i++) {
+    let p = document.createElement('div');
+    p.className = 'particle';
+    p.style.width = Math.random()*10+5+'px';
+    p.style.height = p.style.width;
+    p.style.left = Math.random()*100+'%';
+    p.style.top = Math.random()*100+'%';
+    p.style.animationDelay = Math.random()*3+'s';
+    document.body.appendChild(p);
+}
+</script>
 """, unsafe_allow_html=True)
-                           
-# Cyber Seoul Main App
+
+# ===============================
+# HELPERS
+# ===============================
+def google_search(title: str):
+    return f"https://www.google.com/search?q={urllib.parse.quote(title + ' manhwa')}"
+
+# ===============================
+# MAIN APP
+# ===============================
 def main():
-    # HEADER with glitch effect
-    st.markdown("<h1 class='glitch-text' data-text='MANHWA AI RECOMMENDER'>MANHWA AI RECOMMENDER</h1>", unsafe_allow_html=True)
-    st.markdown("<h3 style='text-align: center; color: #a0a0ff;'>Discover your next favorite manhwa with neural-powered recommendations</h3>", unsafe_allow_html=True)
-    
-    # Split-screen columns (60/40 split)
-    col_left, col_right = st.columns([1.5, 1])
-    
-    with col_left:
-        # TRENDING TODAY - Gangnam District
-        st.markdown("<h2>𓊝 TRENDING DISTRICT</h2>", unsafe_allow_html=True)
-        st.markdown("<p style='color: #a0a0ff; font-size: 16px;'>Neural scan of Gangnam's most discussed titles</p>", unsafe_allow_html=True)
-        
-        # Card 1 - Solo Leveling
-        with st.container():
-            st.markdown("<div class='cyber-card'>", unsafe_allow_html=True)
-            st.markdown("<div style='display: flex; align-items: center;'>", unsafe_allow_html=True)
-            st.markdown("<div class='rank-badge'>1</div><h3 style='margin: 0;'>SOLO LEVELING</h3>", unsafe_allow_html=True)
-            st.markdown("</div>", unsafe_allow_html=True)
-            
-            # Metrics row
-            col1, col2, col3 = st.columns(3)
-            with col1:
-                st.markdown("<div class='cyber-metric'>892</div>", unsafe_allow_html=True)
-                st.markdown("<div class='cyber-metric-label'>TODAY'S SCORE</div>", unsafe_allow_html=True)
-            with col2:
-                st.markdown("<div class='cyber-metric'>2,847</div>", unsafe_allow_html=True)
-                st.markdown("<div class='cyber-metric-label'>TOTAL SCAN</div>", unsafe_allow_html=True)
-            with col3:
-                st.markdown("<div style='background: linear-gradient(45deg, #00ff00, #00ffff); padding: 10px 15px; border-radius: 20px; text-align: center;'>", unsafe_allow_html=True)
-                st.markdown("<div style='color: #0a0a1a; font-weight: 900; font-size: 18px;'>+127</div>", unsafe_allow_html=True)
-                st.markdown("<div style='color: #0a0a1a; font-size: 12px;'>TODAY</div>", unsafe_allow_html=True)
-                st.markdown("</div>", unsafe_allow_html=True)
-            
-            st.markdown("<div style='color: #00ffff; margin-top: 15px; font-size: 16px; letter-spacing: 1px;'>ACTION · FANTASY · GAME ELEMENTS</div>", unsafe_allow_html=True)
-            st.markdown("</div>", unsafe_allow_html=True)
-        
-        # Card 2 - The Beginning After The End
-        with st.container():
-            st.markdown("<div class='cyber-card'>", unsafe_allow_html=True)
-            st.markdown("<div style='display: flex; align-items: center;'>", unsafe_allow_html=True)
-            st.markdown("<div class='rank-badge'>2</div><h3 style='margin: 0;'>THE BEGINNING AFTER THE END</h3>", unsafe_allow_html=True)
-            st.markdown("</div>", unsafe_allow_html=True)
-            
-            st.markdown("<div style='color: #ff00ff; margin: 10px 0;'>FANTASY · REINCARNATION</div>", unsafe_allow_html=True)
-            st.markdown("<div class='cyber-metric'>745</div>", unsafe_allow_html=True)
-            st.markdown("</div>", unsafe_allow_html=True)
-        
-        # Card 3 - Omniscient Reader
-        with st.container():
-            st.markdown("<div class='cyber-card'>", unsafe_allow_html=True)
-            st.markdown("<div style='display: flex; align-items: center;'>", unsafe_allow_html=True)
-            st.markdown("<div class='rank-badge'>3</div><h3 style='margin: 0;'>OMNISCIENT READER</h3>", unsafe_allow_html=True)
-            st.markdown("</div>", unsafe_allow_html=True)
-            
-            st.markdown("<div style='color: #ff00ff; margin: 10px 0;'>FANTASY · APOCALYPSE</div>", unsafe_allow_html=True)
-            st.markdown("<div class='cyber-metric'>698</div>", unsafe_allow_html=True)
-            st.markdown("</div>", unsafe_allow_html=True)
-        
-        # Action Buttons
+
+ # Header with search in top right
+    header_left, header_right = st.columns([6, 1])
+    with header_left:
+     st.markdown("<h1>MANHWA INTEL</h1>", unsafe_allow_html=True)
+    with header_right:
         st.markdown("<div style='margin-top: 30px;'>", unsafe_allow_html=True)
-        if st.button("𓊝 INITIATE RECOMMENDATION SCAN", key="scan_btn"):
-            st.session_state.scan_initiated = True
-        
-        if st.button("𓊝 ANALYZE NEURAL PATTERNS", key="analyze_btn"):
-            st.session_state.analyze = True
+        st.markdown("""<style>
+        div[data-baseweb="input"] > div {
+            background: linear-gradient(45deg, rgba(0,255,255,0.2), rgba(255,0,255,0.2)) !important;
+            border: 2px solid #00ffff !important;
+            border-radius: 8px !important;
+            box-shadow: 0 0 15px rgba(0,255,255,0.5) !important;
+        }
+        div[data-baseweb="input"] input {
+            color: #00ffff !important;
+            font-weight: bold !important;
+        }
+        </style>""", unsafe_allow_html=True)
+        search_query = st.text_input("", placeholder="🔍 Search...", label_visibility="collapsed", key="search")
         st.markdown("</div>", unsafe_allow_html=True)
-    
-    with col_right:
-        # NEURAL INTERFACE
-        st.markdown("<h2>𓊝 NEURAL INTERFACE</h2>", unsafe_allow_html=True)
+
+    col_left, col_right = st.columns([2.5, 1])
+
+    # ===============================
+    # LEFT — TRENDING
+    # ===============================
+    with col_left:
+        st.markdown("<h2>𓊝 TRENDING DISTRICT</h2>", unsafe_allow_html=True)
+
+        # Fetch trending from API
+        try:
+            response = requests.get("https://fuzzy-space-system-7v6gv6qwq79xfw5w6-8000.app.github.dev/trending", timeout=5)
+            data = response.json()
+            trending = [(item["title"], item["image"]) for item in data]
+        except Exception as e:
+            st.error(f"API Error: {str(e)}")
+            trending = [("API Error", "https://via.placeholder.com/400x560")]
+
+        # Create 2 rows of 5 manhwa each
+        row1 = st.columns(5, gap="small")
+        row2 = st.columns(5, gap="small")
         
-        # Genres Selector
+        for i, (title, img) in enumerate(trending[:10]):
+            link = google_search(title)
+            col = row1[i] if i < 5 else row2[i - 5]
+            
+            with col:
+                st.markdown(f"""
+                <div class="cyber-card" style="padding:10px; height:350px;">
+                    <div class="rank-badge" style="position:absolute; top:10px; left:10px; width:28px; height:28px; font-size:14px;">{i+1}</div>
+                    <a href="{link}" target="_blank">
+                        <img src="{img}" style="width:100%; height:250px; object-fit:cover;">
+                    </a>
+                    <p style="margin-top:8px; font-size:11px; line-height:1.3; overflow:hidden; text-overflow:ellipsis; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;">{title}</p>
+                </div>
+                """, unsafe_allow_html=True)
+
+    # ===============================
+    # RIGHT — NEURAL INTERFACE
+    # ===============================
+    with col_right:
+        st.markdown("<h2>𓊝 NEURAL INTERFACE</h2>", unsafe_allow_html=True)
+
         st.markdown("<div class='cyber-card'>", unsafe_allow_html=True)
-        st.markdown("<h3 style='color: #00ffff; margin-top: 0;'>GENRES</h3>", unsafe_allow_html=True)
         genres = st.multiselect(
-            "Select neural preferences",
-            ["ACTION", "FANTASY", "CYBERPUNK", "ROMANCE", "THRILLER", "MYSTERY", "SCIFI", "SUPERNATURAL"],
+            "Genres",
+            ["ACTION", "FANTASY", "ROMANCE", "THRILLER", "CYBERPUNK", "MYSTERY"],
             default=["ACTION", "FANTASY"],
             label_visibility="collapsed"
         )
         st.markdown("</div>", unsafe_allow_html=True)
-        
-        # Mood Selector
-        st.markdown("<div class='cyber-card'>", unsafe_allow_html=True)
-        st.markdown("<h3 style='color: #00ffff; margin-top: 0;'>MOOD/VIBE</h3>", unsafe_allow_html=True)
-        mood = st.selectbox(
-            "Select neural frequency",
-            ["ACTION-PACKED AND INTENSE", "CYBERNOIR MYSTERY", "NEON ROMANCE", "EPIC FANTASY", "PSYCHOLOGICAL THRILLER"],
-            index=0,
-            label_visibility="collapsed"
-        )
-        st.markdown("</div>", unsafe_allow_html=True)
-        
-        # Tropes Selector
-        st.markdown("<div class='cyber-card'>", unsafe_allow_html=True)
-        st.markdown("<h3 style='color: #00ffff; margin-top: 0;'>TROPES (OPTIONAL)</h3>", unsafe_allow_html=True)
-        tropes = st.multiselect(
-            "Select narrative patterns",
-            ["SYSTEM", "REINCARNATION", "CYBER-ENHANCEMENT", "TIME TRAVEL", "DUNGEON CRAWL", "APOCALYPSE"],
-            label_visibility="collapsed"
-        )
-        st.markdown("</div>", unsafe_allow_html=True)
-        
-        # Scan Button
-        if st.button("𓊝 INITIATE DEEP SCAN", key="deep_scan"):
-            st.session_state.deep_scan = True
-        
-        # Results Display
-        if st.session_state.get('scan_initiated', False) or st.session_state.get('deep_scan', False):
-            st.markdown("<div class='cyber-card' style='border-image: linear-gradient(45deg, #00ff00, #00ffff) 1;'>", unsafe_allow_html=True)
-            st.markdown("<h3 style='color: #00ff00;'>𓊝 NEURAL SCAN RESULTS</h3>", unsafe_allow_html=True)
-            
-            results = [
-                {"title": "SOLO LEVELING", "match": "98%", "status": "𓊝 OPTIMAL MATCH"},
-                {"title": "OMNISCIENT READER", "match": "92%", "status": "𓊝 HIGH SYNC"},
-                {"title": "TOWER OF GOD", "match": "87%", "status": "𓊝 NEURAL COMPATIBLE"}
-            ]
-            
-            for result in results:
-                col_a, col_b = st.columns([3, 1])
-                with col_a:
-                    st.markdown(f"**{result['title']}**")
-                    st.markdown(f"<div style='color: #a0a0ff; font-size: 14px;'>{result['status']}</div>", unsafe_allow_html=True)
-                with col_b:
-                    st.markdown(f"<div style='background: linear-gradient(45deg, #00ff00, #00ffff); color: #0a0a1a; padding: 5px 10px; border-radius: 15px; text-align: center; font-weight: 900;'>{result['match']}</div>", unsafe_allow_html=True)
-                st.markdown("---")
+
+        if st.button("𓊝 INITIATE NEURAL SCAN"):
+            st.session_state.scan = True
+
+        if st.session_state.get("scan", False):     
+            st.markdown("<div class='cyber-card'>", unsafe_allow_html=True)
+            st.markdown("<h3>𓊝 NEURAL RESULTS</h3>", unsafe_allow_html=True)
+
+            # Show loading animation
+            with st.spinner('🔮 SCANNING NEURAL DATABASE...'):
+                try:
+                    api_response = requests.post(
+                        "https://fuzzy-space-system-7v6gv6qwq79xfw5w6-8000.app.github.dev/recommend",
+                        json={"genres": genres},
+                        timeout=30
+                    )
+                    results = [item["title"] for item in api_response.json().get("recommendations", [])]
+                except Exception as e:
+                    st.error(f"API Error: {str(e)}")
+                    results = ["AI Error - Please try again"]
+
+            for r in results:
+                link = google_search(r)
+                st.markdown(f"""
+                <a href="{link}" target="_blank" style="text-decoration:none;">
+                    <div style="padding:10px 0; color:#00ffff; font-weight:700;">
+                        {r}
+                    </div>
+                </a>
+                """, unsafe_allow_html=True)
+
             st.markdown("</div>", unsafe_allow_html=True)
-        
-        # System Status
-        st.markdown("<div class='cyber-card'>", unsafe_allow_html=True)
-        st.markdown("<h3 style='color: #00ffff; margin-top: 0;'>𓊝 SYSTEM STATUS</h3>", unsafe_allow_html=True)
-        st.markdown("<div class='cyber-metric'>2/3</div>", unsafe_allow_html=True)
-        st.markdown("<div style='color: #a0a0ff;'>NEURAL QUERIES TODAY</div>", unsafe_allow_html=True)
-        st.markdown("<div style='color: #8888ff; font-size: 14px; margin-top: 10px;'>FREE TIER: 3 RESULTS PER CYCLE</div>", unsafe_allow_html=True)
-        st.markdown("</div>", unsafe_allow_html=True)
-    
-    # Upgrade Banner
-    st.markdown("""
-    <div style='
-        background: linear-gradient(45deg, #ff00ff, #00ffff);
-        color: #0a0a1a;
-        padding: 20px;
-        border-radius: 10px;
-        text-align: center;
-        margin: 30px 0;
-        font-weight: 900;
-        font-size: 24px;
-        letter-spacing: 2px;
-        text-transform: uppercase;
-        box-shadow: 0 0 30px rgba(255, 0, 255, 0.5);
-        animation: neonPulse 2s infinite;
-    '>
-    𓊝 UPGRADE TO NEURAL PREMIUM 𓊝
-    </div>
-    """, unsafe_allow_html=True)
-    
-    # Terminal Footer
-    st.markdown("<div style='color: #00ff00; font-family: monospace; font-size: 12px; text-align: center; border-top: 1px solid #00ffff; padding-top: 10px;'>", unsafe_allow_html=True)
-    st.markdown("𓊝 SYSTEM: ONLINE | NEURAL NET: ACTIVE | GANGSEC: STABLE 𓊝", unsafe_allow_html=True)
-    st.markdown("</div>", unsafe_allow_html=True)
 
-# Initialize session state
-for key in ['scan_initiated', 'analyze', 'deep_scan']:
-    if key not in st.session_state:
-        st.session_state[key] = False
+            # Call AI API for recommendations
+    try:
+                api_response = requests.post(
+                    "https://fuzzy-space-system-7v6gv6qwq79xfw5w6-8000.app.github.dev/recommend",
+                    json={"genres": genres},
+                    timeout=30
+                )
+                results = [item["title"] for item in api_response.json().get("recommendations", [])]
+    except Exception as e:
+                st.error(f"API Error: {str(e)}")
+                results = ["AI Error - Please try again"]
 
+    for r in results:
+                link = google_search(r)
+                st.markdown(f"""
+                <a href="{link}" target="_blank" style="text-decoration:none;">
+                    <div style="padding:10px 0; color:#00ffff; font-weight:700;">
+                        {r}
+                    </div>
+                </a>
+                """, unsafe_allow_html=True)
+
+                st.markdown("</div>", unsafe_allow_html=True)
+
+# ===============================
+# RUN
+# ===============================
 if __name__ == "__main__":
     main()

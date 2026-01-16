@@ -1,5 +1,6 @@
 import streamlit as st
 import random
+import requests
 import time
 
 # Page config
