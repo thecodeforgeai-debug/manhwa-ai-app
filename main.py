@@ -225,6 +225,7 @@ def main():
         st.markdown("<h2>𓊝 NEURAL INTERFACE</h2>", unsafe_allow_html=True)
 
         st.markdown("<div class='cyber-card'>", unsafe_allow_html=True)
+        st.markdown("<h3 style='color: #00ffff; margin-top: 0;'>GENRES</h3>", unsafe_allow_html=True)
         genres = st.multiselect(
             "Genres",
             ["ACTION", "FANTASY", "ROMANCE", "THRILLER", "CYBERPUNK", "MYSTERY"],
@@ -252,7 +253,6 @@ def main():
 
         if st.session_state.get("scan", False):     
             st.markdown("<div class='cyber-card'>", unsafe_allow_html=True)
-            st.markdown("<h3>𓊝 NEURAL RESULTS</h3>", unsafe_allow_html=True)
 
             # Show loading animation
             with st.spinner('🔮 SCANNING NEURAL DATABASE...'):
