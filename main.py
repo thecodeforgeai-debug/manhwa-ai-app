@@ -161,6 +161,25 @@ def main():
         }
         </style>""", unsafe_allow_html=True)
         search_query = st.text_input("", placeholder="🔍 Search...", label_visibility="collapsed", key="search")
+
+    # Search results
+    if search_query:
+        st.markdown(f"<h3 style='color:#00ffff; text-align:center; margin:20px 0;'>Search: {search_query}</h3>", unsafe_allow_html=True)
+        try:
+            response = requests.get(f"https://fuzzy-space-system-7v6gv6qwq79xfw5w6-8000.app.github.dev/search?query={search_query}", timeout=5)
+            search_results = response.json()
+            if search_results:
+                cols = st.columns(5)
+                for i, item in enumerate(search_results[:5]):
+                    with cols[i]:
+                        st.markdown(f"""<div class="cyber-card" style="padding:10px; height:300px;">
+                            <img src="{item['image']}" style="width:100%; height:220px; object-fit:cover;">
+                            <p style="font-size:11px; margin-top:5px;">{item['title']}</p>
+                        </div>""", unsafe_allow_html=True)
+            else:
+                st.warning("No results found")
+        except Exception as e:
+            st.error(f"Search error: {e}")
         st.markdown("</div>", unsafe_allow_html=True)
 
     col_left, col_right = st.columns([2.5, 1])
