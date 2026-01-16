@@ -41,22 +41,6 @@ def fetch_anilist_trending():
         print(f"❌ Anilist error: {e}")
         return []
 
-def fetch_mal_trending():
-    """Fetch trending from MyAnimeList (via Jikan API)"""
-    try:
-        response = requests.get('https://api.jikan.moe/v4/manga?type=manhwa&order_by=popularity&limit=50', timeout=10)
-        data = response.json()
-        results = []
-        for item in data.get('data', []):
-            title = item['title']
-            score = (item.get('members', 0) + item.get('favorites', 0) * 2 + (item.get('score', 0) or 0) * 1000)
-            results.append((title, int(score)))
-        time.sleep(1)  # Rate limit
-        return results
-    except Exception as e:
-        print(f"❌ MAL error: {e}")
-        return []
-
 def fetch_mangadex_trending():
     """Fetch popular from MangaDex"""
     try:
@@ -89,7 +73,6 @@ def aggregate_trending():
         all_results[title.lower()] = all_results.get(title.lower(), {'title': title, 'score': 0})
         all_results[title.lower()]['score'] += score
     
-    for title, score in fetch_mal_trending():
         all_results[title.lower()] = all_results.get(title.lower(), {'title': title, 'score': 0})
         all_results[title.lower()]['score'] += score
     

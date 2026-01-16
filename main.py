@@ -1,6 +1,7 @@
 import streamlit as st
 import urllib.parse
 import requests
+import sqlite3
 
 # ===============================
 # PAGE CONFIG
@@ -134,6 +135,33 @@ for(let i=0; i<20; i++) {
 # ===============================
 # HELPERS
 # ===============================
+def fetch_anilist_details(title):
+    """Fetch manhwa details from Anilist API"""
+    query = """
+    query ($search: String) {
+        Media(search: $search, type: MANGA, format: MANGA) {
+            title { english romaji }
+            description
+            genres
+            tags { name }
+            coverImage { extraLarge }
+        }
+    }
+    """
+    try:
+        response = requests.post("https://graphql.anilist.co", 
+            json={"query": query, "variables": {"search": title}}, timeout=10)
+        data = response.json()["data"]["Media"]
+        return {
+            "description": data.get("description", "").replace("<br>", " ").replace("<i>", "").replace("</i>", ""),
+            "genres": ", ".join(data.get("genres", [])),
+            "tropes": ", ".join([t["name"] for t in data.get("tags", [])[:5]]),
+            "image": data.get("coverImage", {}).get("extraLarge")
+        }
+    except:
+        return None
+
+
 def show_detail_page(manhwa_id):
     """Display detailed manhwa page"""
     conn = sqlite3.connect("data/manhwa.db")
@@ -148,6 +176,16 @@ def show_detail_page(manhwa_id):
     
     _, title, genres, tropes, desc, pop, img = result
     
+    # Fetch from Anilist if data is missing
+    if not desc or genres == "Unknown":
+        anilist_data = fetch_anilist_details(title)
+        if anilist_data:
+            if not img:
+                img = anilist_data.get("image")
+            desc = anilist_data["description"] or desc
+            genres = anilist_data["genres"] or genres
+            tropes = anilist_data["tropes"] or tropes
+    
     # Back button
     if st.button("← BACK TO NEURAL HUB"):
         st.query_params.clear()
@@ -156,9 +194,12 @@ def show_detail_page(manhwa_id):
     # Detail layout
     col1, col2 = st.columns([1, 2])
     with col1:
-        st.image(img or "https://via.placeholder.com/400x560", use_container_width=True)
+        st.markdown(f"""<a href="{google_search(title)}" target="_blank"><img src="{img or "https://via.placeholder.com/400x560"}" style="width:100%; border-radius:8px;"></a>""", unsafe_allow_html=True)
+    with col1:
+        if st.button("🔍 Search on Google", key="google_btn", use_container_width=True):
+            st.markdown(f"""<script>window.open("{google_search(title)}", "_blank");</script>""", unsafe_allow_html=True)
     with col2:
-        st.markdown(f"<h1 style='color:#00ffff;'>{title}</h1>", unsafe_allow_html=True)
+        st.markdown(f"""<a href="{google_search(title)}" target="_blank" style="text-decoration:none;"><h1 style="color:#00ffff;">{title}</h1></a>""", unsafe_allow_html=True)
         st.markdown(f"<p style='color:#ff00ff;'>⭐ Popularity: {pop}</p>", unsafe_allow_html=True)
         st.markdown(f"<p><strong>Genres:</strong> {genres}</p>", unsafe_allow_html=True)
         st.markdown(f"<p><strong>Tropes:</strong> {tropes}</p>", unsafe_allow_html=True)
@@ -248,7 +289,7 @@ def main():
                 st.markdown(f"""
                 <div class="cyber-card" style="padding:10px; height:350px;">
                     <div class="rank-badge" style="position:absolute; top:10px; left:10px; width:28px; height:28px; font-size:14px;">{i+1}</div>
-                    <a href="{google_search(title)}" target="_blank">
+                    <a href="?id={manhwa_id}" style="cursor:pointer;">
                         <img src="{img}" style="width:100%; height:250px; object-fit:cover;">
                     </a>
                     <p style="margin-top:8px; font-size:11px; line-height:1.3; overflow:hidden; text-overflow:ellipsis; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;">{title}</p>
