@@ -214,23 +214,13 @@ def main():
         )
         st.markdown("</div>", unsafe_allow_html=True)
         
-        # Mood Selector
-        st.markdown("<div class='cyber-card'>", unsafe_allow_html=True)
-        st.markdown("<h3 style='color: #00ffff; margin-top: 0;'>MOOD/VIBE</h3>", unsafe_allow_html=True)
-        mood = st.selectbox(
-            "Select neural frequency",
-            ["ACTION-PACKED AND INTENSE", "CYBERNOIR MYSTERY", "NEON ROMANCE", "EPIC FANTASY", "PSYCHOLOGICAL THRILLER"],
-            index=None,
-            label_visibility="collapsed"
-        )
-        st.markdown("</div>", unsafe_allow_html=True)
         # Initialize recommendation history
         if 'rec_history' not in st.session_state:
             st.session_state.rec_history = []
         
         # Tropes Selector
         st.markdown("<div class='cyber-card'>", unsafe_allow_html=True)
-        st.markdown("<h3 style='color: #00ffff; margin-top: 0;'>TROPES (OPTIONAL)</h3>", unsafe_allow_html=True)
+        st.markdown("<h3 style='color: #00ffff; margin-top: 0;'>TROPES</h3>", unsafe_allow_html=True)
         tropes = st.multiselect(
             "Select narrative patterns",
             ["SYSTEM", "REINCARNATION", "CYBER-ENHANCEMENT", "TIME TRAVEL", "DUNGEON CRAWL", "APOCALYPSE"],
@@ -250,7 +240,7 @@ def main():
                 try:
                     api_response = requests.post(
                         "https://fuzzy-space-system-7v6gv6qwq79xfw5w6-8000.app.github.dev/recommend",
-                        json={"genres": genres, "mood": mood, "history": st.session_state.rec_history},
+                        json={"genres": genres, "history": st.session_state.rec_history},
                         timeout=30
                     )
                     results = [item["title"] for item in api_response.json().get("recommendations", [])]

@@ -18,9 +18,9 @@ def get_trending():
 @app.post("/recommend")
 def recommend(request: dict):
     genres = request.get("genres", [])
-    mood = request.get("mood", "exciting")
+    # mood removed
     history = request.get("history", [])
-    result = get_recommendations(genres, [], mood, history)
+    result = get_recommendations(genres, [], "exciting", history)
     
     if not result.get('success'):
         return {"recommendations": []}
