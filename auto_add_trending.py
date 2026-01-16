@@ -6,142 +6,133 @@ from datetime import datetime
 
 DB_PATH = "data/manhwa.db"
 
-# Blacklist generic/junk words
-BLACKLIST = {
-    'title', 'meme', 'spoiler', 'recommendation', 'sauce', 'source',
-    'help', 'question', 'discussion', 'manga', 'manhwa', 'manhua',
-    'nsfw', 'spoilers', 'read', 'chapter', 'new', 'best', 'top'
-}
-
 def get_existing_titles():
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     cursor.execute("SELECT title FROM manhwa")
-    # Store both original and lowercase for better matching
     existing = {row[0].lower().strip() for row in cursor.fetchall()}
     conn.close()
     return existing
 
-def is_valid_title(title):
-    """Check if title is valid (not generic junk)"""
-    title_lower = title.lower().strip()
-    
-    # Too short or too long
-    if len(title) < 4 or len(title) > 80:
-        return False
-    
-    # Contains blacklisted words only
-    words = set(title_lower.split())
-    if words.issubset(BLACKLIST):
-        return False
-    
-    # Is just a single generic word
-    if title_lower in BLACKLIST:
-        return False
-    
-    # Contains numbers only or URLs
-    if title.replace(' ', '').isdigit() or 'http' in title_lower:
-        return False
-    
-    return True
-
-def search_reddit_for_manhwa():
-    print("🔍 Searching Reddit r/manhwa...")
-    discovered = {}
-    
+def fetch_anilist_trending():
+    """Fetch trending from Anilist API"""
+    query = '''
+    query {
+        Page(page: 1, perPage: 50) {
+            media(type: MANGA, format: MANGA, sort: TRENDING_DESC, countryOfOrigin: "KR") {
+                title { english romaji }
+                popularity
+                favourites
+                averageScore
+            }
+        }
+    }
+    '''
     try:
-        url = "https://www.reddit.com/r/manhwa/hot.json?limit=50"
-        headers = {'User-Agent': 'ManhwaRecommender/1.0'}
-        response = requests.get(url, headers=headers, timeout=10)
-        
-        if response.status_code == 200:
-            data = response.json()
-            posts = data.get('data', {}).get('children', [])
-            
-            for post in posts:
-                post_data = post.get('data', {})
-                title = post_data.get('title', '')
-                selftext = post_data.get('selftext', '')
-                score = post_data.get('score', 0)
-                
-                import re
-                patterns = [
-                    r'\[(.*?)\]',
-                    r'"(.*?)"',
-                    r'«(.*?)»',
-                ]
-                
-                for pattern in patterns:
-                    matches = re.findall(pattern, title + " " + selftext)
-                    for match in matches:
-                        match = match.strip()
-                        if is_valid_title(match):
-                            discovered[match] = discovered.get(match, 0) + score
-        
-        time.sleep(1)
+        response = requests.post('https://graphql.anilist.co', json={'query': query}, timeout=10)
+        data = response.json()
+        results = []
+        for item in data['data']['Page']['media']:
+            title = item['title']['english'] or item['title']['romaji']
+            score = (item['popularity'] or 0) + (item['favourites'] or 0) * 2 + (item['averageScore'] or 0) * 10
+            results.append((title, int(score)))
+        return results
     except Exception as e:
-        print(f"⚠️ Reddit error: {e}")
-    
-    return discovered
+        print(f"❌ Anilist error: {e}")
+        return []
 
-def add_new_manhwa(title):
+def fetch_mal_trending():
+    """Fetch trending from MyAnimeList (via Jikan API)"""
+    try:
+        response = requests.get('https://api.jikan.moe/v4/manga?type=manhwa&order_by=popularity&limit=50', timeout=10)
+        data = response.json()
+        results = []
+        for item in data.get('data', []):
+            title = item['title']
+            score = (item.get('members', 0) + item.get('favorites', 0) * 2 + (item.get('score', 0) or 0) * 1000)
+            results.append((title, int(score)))
+        time.sleep(1)  # Rate limit
+        return results
+    except Exception as e:
+        print(f"❌ MAL error: {e}")
+        return []
+
+def fetch_mangadex_trending():
+    """Fetch popular from MangaDex"""
+    try:
+        params = {
+            'limit': 50,
+            'contentRating[]': ['safe', 'suggestive'],
+            'order[followedCount]': 'desc',
+            'originalLanguage[]': 'ko'
+        }
+        response = requests.get('https://api.mangadex.org/manga', params=params, timeout=10)
+        data = response.json()
+        results = []
+        for item in data.get('data', []):
+            title = item['attributes']['title'].get('en') or list(item['attributes']['title'].values())[0]
+            # MangaDex doesn't return follows in list, so use static score
+            results.append((title, 1000))
+        return results
+    except Exception as e:
+        print(f"❌ MangaDex error: {e}")
+        return []
+
+def aggregate_trending():
+    """Combine all sources and rank"""
+    print("🔍 Fetching from multiple sources...")
+    
+    all_results = {}
+    
+    # Fetch from all sources
+    for title, score in fetch_anilist_trending():
+        all_results[title.lower()] = all_results.get(title.lower(), {'title': title, 'score': 0})
+        all_results[title.lower()]['score'] += score
+    
+    for title, score in fetch_mal_trending():
+        all_results[title.lower()] = all_results.get(title.lower(), {'title': title, 'score': 0})
+        all_results[title.lower()]['score'] += score
+    
+    for title, score in fetch_mangadex_trending():
+        all_results[title.lower()] = all_results.get(title.lower(), {'title': title, 'score': 0})
+        all_results[title.lower()]['score'] += score
+    
+    # Sort by combined score
+    sorted_results = sorted(all_results.values(), key=lambda x: x['score'], reverse=True)
+    
+    return [(item['title'], item['score']) for item in sorted_results[:20]]
+
+def add_new_manhwa(titles_scores):
+    """Add new manhwa to database"""
+    existing = get_existing_titles()
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     
-    try:
-        cursor.execute("""
-            INSERT INTO manhwa (title, genres, tropes, description)
-            VALUES (?, ?, ?, ?)
-        """, (title, "action,fantasy", "trending", f"Trending: {title}"))
-        
-        cursor.execute("""
-            INSERT INTO trending_scores (title, recommendation_count, daily_score)
-            VALUES (?, 0, 50)
-        """, (title,))
-        
-        conn.commit()
-        conn.close()
-        return True
-    except:
-        conn.close()
-        return False
+    added = 0
+    for title, score in titles_scores:
+        if title.lower() not in existing:
+            cursor.execute(
+                "INSERT INTO manhwa (title, genres, tropes, popularity_score) VALUES (?, ?, ?, ?)",
+                (title, "Unknown", "Unknown", score)
+            )
+            added += 1
+            print(f"✅ Added: {title} (score: {score})")
+    
+    conn.commit()
+    conn.close()
+    return added
 
 def main():
     print("=" * 70)
-    print("🤖 AUTO-ADD TRENDING MANHWA (v2 - Smart Filter)")
+    print("🤖 MULTI-SOURCE TRENDING MANHWA UPDATER")
     print("=" * 70)
     
-    existing = get_existing_titles()
-    print(f"📚 Database: {len(existing)} manhwa\n")
+    trending = aggregate_trending()
+    print(f"📊 Found {len(trending)} trending titles")
     
-    discovered = search_reddit_for_manhwa()
-    print(f"🔍 Discovered: {len(discovered)} mentions\n")
-    
-    # Filter: valid + not existing + good score
-    new_manhwa = []
-    for title, score in sorted(discovered.items(), key=lambda x: x[1], reverse=True):
-        if title.lower().strip() not in existing and score > 20:  # Higher threshold
-            new_manhwa.append((title, score))
-    
-    print(f"✨ NEW valid manhwa: {len(new_manhwa)}\n")
-    
-    added = 0
-    for title, score in new_manhwa[:5]:  # Limit to top 5
-        print(f"  Adding: {title} (score: {score})")
-        if add_new_manhwa(title):
-            added += 1
-            print(f"    ✓ Added")
-        else:
-            print(f"    ⊘ Duplicate")
-    
+    added = add_new_manhwa(trending)
     print(f"\n✅ Added {added} new manhwa")
-    
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    cursor.execute("SELECT COUNT(*) FROM manhwa")
-    total = cursor.fetchone()[0]
-    conn.close()
-    print(f"📚 Total now: {total} manhwa")
+    print(f"📚 Update complete!")
 
 if __name__ == "__main__":
     main()
