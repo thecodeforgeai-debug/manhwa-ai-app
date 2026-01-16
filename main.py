@@ -17,6 +17,20 @@ st.set_page_config(
 # ===============================
 st.markdown("""
 <style>
+    /* Cyber buttons matching search bar */
+    .stButton > button {
+        background: linear-gradient(45deg, rgba(0,255,255,0.2), rgba(255,0,255,0.2)) !important;
+        border: 2px solid #00ffff !important;
+        border-radius: 8px !important;
+        box-shadow: 0 0 15px rgba(0,255,255,0.5) !important;
+        color: #00ffff !important;
+        font-weight: bold !important;
+    }
+    .stButton > button:hover {
+        background: linear-gradient(45deg, rgba(0,255,255,0.4), rgba(255,0,255,0.4)) !important;
+        box-shadow: 0 0 25px rgba(0,255,255,0.8) !important;
+        transform: translateY(-2px) !important;
+    }
 /* --- SAME CSS YOU PROVIDED, UNCHANGED --- */
 .stApp {
     background: linear-gradient(135deg, #0a0a1a 0%, #1a1a2e 50%, #16213e 100%) !important;
@@ -195,7 +209,28 @@ def main():
         genres = st.multiselect(
             "Genres",
             ["ACTION", "FANTASY", "ROMANCE", "THRILLER", "CYBERPUNK", "MYSTERY"],
-            default=["ACTION", "FANTASY"],
+            default=[],
+            label_visibility="collapsed"
+        )
+        st.markdown("</div>", unsafe_allow_html=True)
+        
+        # Mood Selector
+        st.markdown("<div class='cyber-card'>", unsafe_allow_html=True)
+        st.markdown("<h3 style='color: #00ffff; margin-top: 0;'>MOOD/VIBE</h3>", unsafe_allow_html=True)
+        mood = st.selectbox(
+            "Select neural frequency",
+            ["ACTION-PACKED AND INTENSE", "CYBERNOIR MYSTERY", "NEON ROMANCE", "EPIC FANTASY", "PSYCHOLOGICAL THRILLER"],
+            index=None,
+            label_visibility="collapsed"
+        )
+        st.markdown("</div>", unsafe_allow_html=True)
+        
+        # Tropes Selector
+        st.markdown("<div class='cyber-card'>", unsafe_allow_html=True)
+        st.markdown("<h3 style='color: #00ffff; margin-top: 0;'>TROPES (OPTIONAL)</h3>", unsafe_allow_html=True)
+        tropes = st.multiselect(
+            "Select narrative patterns",
+            ["SYSTEM", "REINCARNATION", "CYBER-ENHANCEMENT", "TIME TRAVEL", "DUNGEON CRAWL", "APOCALYPSE"],
             label_visibility="collapsed"
         )
         st.markdown("</div>", unsafe_allow_html=True)
@@ -212,7 +247,7 @@ def main():
                 try:
                     api_response = requests.post(
                         "https://fuzzy-space-system-7v6gv6qwq79xfw5w6-8000.app.github.dev/recommend",
-                        json={"genres": genres},
+                        json={"genres": genres, "mood": mood},
                         timeout=30
                     )
                     results = [item["title"] for item in api_response.json().get("recommendations", [])]
@@ -244,15 +279,7 @@ def main():
                 st.error(f"API Error: {str(e)}")
                 results = ["AI Error - Please try again"]
 
-    for r in results:
-                link = google_search(r)
-                st.markdown(f"""
-                <a href="{link}" target="_blank" style="text-decoration:none;">
-                    <div style="padding:10px 0; color:#00ffff; font-weight:700;">
-                        {r}
-                    </div>
-                </a>
-                """, unsafe_allow_html=True)
+    
 
                 st.markdown("</div>", unsafe_allow_html=True)
 
