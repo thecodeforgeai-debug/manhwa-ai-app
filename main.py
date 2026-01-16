@@ -136,7 +136,7 @@ for(let i=0; i<20; i++) {
 # HELPERS
 # ===============================
 def fetch_anilist_details(title):
-    """Fetch manhwa details from Anilist API"""
+    """Fetch manhwa details from Anilist API (excluding adult content)"""
     query = """
     query ($search: String) {
         Media(search: $search, type: MANGA, format: MANGA) {
@@ -145,6 +145,7 @@ def fetch_anilist_details(title):
             genres
             tags { name }
             coverImage { extraLarge }
+            isAdult
         }
     }
     """
@@ -152,6 +153,8 @@ def fetch_anilist_details(title):
         response = requests.post("https://graphql.anilist.co", 
             json={"query": query, "variables": {"search": title}}, timeout=10)
         data = response.json()["data"]["Media"]
+        if data.get("isAdult", False):
+            return None
         return {
             "description": data.get("description", "").replace("<br>", " ").replace("<i>", "").replace("</i>", ""),
             "genres": ", ".join(data.get("genres", [])),
@@ -345,14 +348,21 @@ def main():
                         results = ["AI Error - Please try again"]
 
                 for r in results:
-                    link = google_search(r)
-                st.markdown(f"""
-            <a href="{link}" target="_blank" style="text-decoration:none;">
-              <div style="padding:10px 0; color:#00ffff; font-weight:700;">
-              {r}
-              </div>
-            </a>
-            """, unsafe_allow_html=True)
+                    conn = sqlite3.connect("data/manhwa.db")
+                    cursor = conn.cursor()
+                    cursor.execute("SELECT id, image_url FROM manhwa WHERE title = ?", (r,))
+                    result = cursor.fetchone()
+                    conn.close()
+                    if result:
+                        manhwa_id, img = result
+                        st.markdown(f"""
+                        <div class="cyber-card" style="padding:10px; margin:10px 0;">
+                            <a href="?id={manhwa_id}">
+                                <img src="{img or 'https://via.placeholder.com/400x200'}" style="width:100%; height:150px; object-fit:cover; border-radius:8px;">
+                            </a>
+                            <p style="margin-top:8px; font-size:12px; text-align:center;">{r}</p>
+                        </div>
+                        """, unsafe_allow_html=True)
 
             st.markdown("</div>", unsafe_allow_html=True)
 
