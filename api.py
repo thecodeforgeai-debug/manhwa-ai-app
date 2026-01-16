@@ -10,10 +10,10 @@ def get_trending():
     """Get top 10 trending manhwa"""
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
-    cursor.execute("SELECT title, image_url FROM manhwa ORDER BY popularity_score DESC LIMIT 10")
+    cursor.execute("SELECT id, title, image_url FROM manhwa ORDER BY popularity_score DESC LIMIT 10")
     results = cursor.fetchall()
     conn.close()
-    return [{"title": r[0], "image": r[1] or f"https://picsum.photos/seed/{r[0]}/400/560"} for r in results]
+    return [{"id": r[0], "title": r[1], "image": r[2] or f"https://picsum.photos/seed/{r[0]}/400/560"} for r in results]
 
 @app.post("/recommend")
 def recommend(request: dict):
@@ -39,7 +39,7 @@ def search_manhwa(query: str):
     """Search manhwa by title"""
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
-    cursor.execute("SELECT title, image_url FROM manhwa WHERE " + " OR ".join(["title LIKE ?" for _ in query.split()]) + " LIMIT 10", tuple(f"%{word}%" for word in query.split()))
+    cursor.execute("SELECT id, title, image_url FROM manhwa WHERE " + " OR ".join(["title LIKE ?" for _ in query.split()]) + " LIMIT 10", tuple(f"%{word}%" for word in query.split()))
     results = cursor.fetchall()
     conn.close()
-    return [{"title": r[0], "image": r[1] or f"https://picsum.photos/seed/{r[0]}/400/560"} for r in results]
+    return [{"id": r[0], "title": r[1], "image": r[2] or f"https://picsum.photos/seed/{r[0]}/400/560"} for r in results]

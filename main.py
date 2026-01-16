@@ -134,6 +134,37 @@ for(let i=0; i<20; i++) {
 # ===============================
 # HELPERS
 # ===============================
+def show_detail_page(manhwa_id):
+    """Display detailed manhwa page"""
+    conn = sqlite3.connect("data/manhwa.db")
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM manhwa WHERE id = ?", (manhwa_id,))
+    result = cursor.fetchone()
+    conn.close()
+    
+    if not result:
+        st.error("Manhwa not found")
+        return
+    
+    _, title, genres, tropes, desc, pop, img = result
+    
+    # Back button
+    if st.button("← BACK TO NEURAL HUB"):
+        st.query_params.clear()
+        st.rerun()
+    
+    # Detail layout
+    col1, col2 = st.columns([1, 2])
+    with col1:
+        st.image(img or "https://via.placeholder.com/400x560", use_container_width=True)
+    with col2:
+        st.markdown(f"<h1 style='color:#00ffff;'>{title}</h1>", unsafe_allow_html=True)
+        st.markdown(f"<p style='color:#ff00ff;'>⭐ Popularity: {pop}</p>", unsafe_allow_html=True)
+        st.markdown(f"<p><strong>Genres:</strong> {genres}</p>", unsafe_allow_html=True)
+        st.markdown(f"<p><strong>Tropes:</strong> {tropes}</p>", unsafe_allow_html=True)
+        st.markdown(f"<p>{desc or 'No description available.'}</p>", unsafe_allow_html=True)
+
+
 def google_search(title: str):
     return f"https://www.google.com/search?q={urllib.parse.quote(title + ' manhwa')}"
 
@@ -141,6 +172,12 @@ def google_search(title: str):
 # MAIN APP
 # ===============================
 def main():
+    # Check if viewing detail page
+    if "id" in st.query_params:
+        manhwa_id = st.query_params["id"]
+        show_detail_page(int(manhwa_id))
+        return
+
 
  # Header with search in top right
     header_left, header_right = st.columns([6, 1])
@@ -194,7 +231,7 @@ def main():
         try:
             response = requests.get("https://fuzzy-space-system-7v6gv6qwq79xfw5w6-8000.app.github.dev/trending", timeout=5)
             data = response.json()
-            trending = [(item["title"], item["image"]) for item in data]
+            trending = [(item["id"], item["title"], item["image"]) for item in data]
         except Exception as e:
             st.error(f"API Error: {str(e)}")
             trending = [("API Error", "https://via.placeholder.com/400x560")]
@@ -203,7 +240,7 @@ def main():
         row1 = st.columns(5, gap="small")
         row2 = st.columns(5, gap="small")
         
-        for i, (title, img) in enumerate(trending[:10]):
+        for i, (manhwa_id, title, img) in enumerate(trending[:10]):
             link = google_search(title)
             col = row1[i] if i < 5 else row2[i - 5]
             
@@ -211,14 +248,12 @@ def main():
                 st.markdown(f"""
                 <div class="cyber-card" style="padding:10px; height:350px;">
                     <div class="rank-badge" style="position:absolute; top:10px; left:10px; width:28px; height:28px; font-size:14px;">{i+1}</div>
-                    <a href="{link}" target="_blank">
+                    <a href="{google_search(title)}" target="_blank">
                         <img src="{img}" style="width:100%; height:250px; object-fit:cover;">
                     </a>
                     <p style="margin-top:8px; font-size:11px; line-height:1.3; overflow:hidden; text-overflow:ellipsis; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;">{title}</p>
                 </div>
                 """, unsafe_allow_html=True)
-
-    # ===============================
     # RIGHT — NEURAL INTERFACE
     # ===============================
     with col_right:
@@ -265,26 +300,24 @@ def main():
                     results = [item["title"] for item in api_response.json().get("recommendations", [])]
                     st.session_state.rec_history.extend(results)  # Track recommendations
                 except Exception as e:
-                    st.error(f"API Error: {str(e)}")
-                    results = ["AI Error - Please try again"]
+                        st.error(f"API Error: {str(e)}")
+                        results = ["AI Error - Please try again"]
 
-            for r in results:
-                link = google_search(r)
+                for r in results:
+                    link = google_search(r)
                 st.markdown(f"""
-                <a href="{link}" target="_blank" style="text-decoration:none;">
-                    <div style="padding:10px 0; color:#00ffff; font-weight:700;">
-                        {r}
-                    </div>
-                </a>
-                """, unsafe_allow_html=True)
+            <a href="{link}" target="_blank" style="text-decoration:none;">
+              <div style="padding:10px 0; color:#00ffff; font-weight:700;">
+              {r}
+              </div>
+            </a>
+            """, unsafe_allow_html=True)
 
             st.markdown("</div>", unsafe_allow_html=True)
 
     
 
-            st.markdown("</div>", unsafe_allow_html=True)
 
-# ===============================
 # RUN
 # ===============================
 if __name__ == "__main__":
