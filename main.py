@@ -371,32 +371,27 @@ def main():
         if st.session_state.get("scan", False):     
             st.markdown("<div class='cyber-card'>", unsafe_allow_html=True)
 
-            # Show loading animation
             with st.spinner('🔮 SCANNING NEURAL DATABASE...'):
-                try:
-                    for attempt in range(3):
-                        try:
-                            api_response = requests.post(
-                                "https://fuzzy-space-system-7v6gv6qwq79xfw5w6-8000.app.github.dev/recommend",
-                                json={"genres": genres, "history": st.session_state.rec_history},
-                                timeout=30
-                            )
-                            if api_response.status_code == 200:
-                                results = [item["title"] for item in api_response.json().get("recommendations", [])]
-                                st.session_state.rec_history.extend(results)
-                                break
-                            elif attempt < 2:
-                                time.sleep(2)
-                        except requests.exceptions.Timeout:
-                            if attempt == 2:
-                                st.warning("⏱️ AI is taking longer than usual. Try with fewer genres or try again later.")
-                                results = []
-                        except Exception as e:
-                            if attempt == 2:
-                                st.error("❌ Recommendation system temporarily unavailable. Please try again.")
-                                results = []
-                        st.error(f"API Error: {str(e)}")
-                        results = ["AI Error - Please try again"]
+                results = []
+                for attempt in range(3):
+                    try:
+                        api_response = requests.post(
+                            "https://fuzzy-space-system-7v6gv6qwq79xfw5w6-8000.app.github.dev/recommend",
+                            json={"genres": genres, "history": st.session_state.rec_history},
+                            timeout=30
+                        )
+                        if api_response.status_code == 200:
+                            results = [item["title"] for item in api_response.json().get("recommendations", [])]
+                            st.session_state.rec_history.extend(results)
+                            break
+                        elif attempt < 2:
+                            time.sleep(2)
+                    except requests.exceptions.Timeout:
+                        if attempt == 2:
+                            st.warning("⏱️ AI is taking longer than usual. Try with fewer genres or try again later.")
+                    except Exception as e:
+                        if attempt == 2:
+                            st.error("❌ Recommendation system temporarily unavailable. Please try again.")
 
                 for r in results:
                     conn = sqlite3.connect("data/manhwa.db")
