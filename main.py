@@ -2,6 +2,32 @@ import streamlit as st
 import urllib.parse
 import requests
 import sqlite3
+import time
+from functools import wraps
+
+def retry_on_failure(max_retries=3, delay=1):
+    """Retry decorator for API calls"""
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            for attempt in range(max_retries):
+                try:
+                    return func(*args, **kwargs)
+                except Exception as e:
+                    if attempt == max_retries - 1:
+                        raise
+                    time.sleep(delay)
+            return None
+        return wrapper
+    return decorator
+
+def safe_db_query(query_func):
+    """Safe database query wrapper"""
+    try:
+        return query_func()
+    except sqlite3.Error as e:
+        st.error("❌ Database error. Please refresh the page.")
+        return None
 
 # ===============================
 # PAGE CONFIG
@@ -135,6 +161,7 @@ for(let i=0; i<20; i++) {
 # ===============================
 # HELPERS
 # ===============================
+@retry_on_failure(max_retries=3, delay=2)
 def fetch_anilist_details(title):
     """Fetch manhwa details from Anilist API (excluding adult content)"""
     query = """
@@ -271,14 +298,25 @@ def main():
     with col_left:
         st.markdown("<h2>𓊝 TRENDING DISTRICT</h2>", unsafe_allow_html=True)
 
-        # Fetch trending from API
+        # Fetch trending from API with retry
+        trending = []
         try:
-            response = requests.get("https://fuzzy-space-system-7v6gv6qwq79xfw5w6-8000.app.github.dev/trending", timeout=5)
-            data = response.json()
-            trending = [(item["id"], item["title"], item["image"]) for item in data]
+            for attempt in range(3):
+                try:
+                    response = requests.get("https://fuzzy-space-system-7v6gv6qwq79xfw5w6-8000.app.github.dev/trending", timeout=10)
+                    if response.status_code == 200:
+                        data = response.json()
+                        trending = [(item["id"], item["title"], item["image"]) for item in data]
+                        break
+                    time.sleep(2)
+                except requests.exceptions.Timeout:
+                    if attempt == 2:
+                        st.warning("⚠️ Loading trending data is taking longer than usual. Please refresh the page.")
+                except requests.exceptions.ConnectionError:
+                    if attempt == 2:
+                        st.error("❌ Cannot connect to server. Please check your internet connection.")
         except Exception as e:
-            st.error(f"API Error: {str(e)}")
-            trending = [("API Error", "https://via.placeholder.com/400x560")]
+            st.error(f"❌ Error loading trending: Please try refreshing the page.")
 
         # Create 2 rows of 5 manhwa each
         row1 = st.columns(5, gap="small")
@@ -336,14 +374,27 @@ def main():
             # Show loading animation
             with st.spinner('🔮 SCANNING NEURAL DATABASE...'):
                 try:
-                    api_response = requests.post(
-                        "https://fuzzy-space-system-7v6gv6qwq79xfw5w6-8000.app.github.dev/recommend",
-                        json={"genres": genres, "history": st.session_state.rec_history},
-                        timeout=30
-                    )
-                    results = [item["title"] for item in api_response.json().get("recommendations", [])]
-                    st.session_state.rec_history.extend(results)  # Track recommendations
-                except Exception as e:
+                    for attempt in range(3):
+                        try:
+                            api_response = requests.post(
+                                "https://fuzzy-space-system-7v6gv6qwq79xfw5w6-8000.app.github.dev/recommend",
+                                json={"genres": genres, "history": st.session_state.rec_history},
+                                timeout=30
+                            )
+                            if api_response.status_code == 200:
+                                results = [item["title"] for item in api_response.json().get("recommendations", [])]
+                                st.session_state.rec_history.extend(results)
+                                break
+                            elif attempt < 2:
+                                time.sleep(2)
+                        except requests.exceptions.Timeout:
+                            if attempt == 2:
+                                st.warning("⏱️ AI is taking longer than usual. Try with fewer genres or try again later.")
+                                results = []
+                        except Exception as e:
+                            if attempt == 2:
+                                st.error("❌ Recommendation system temporarily unavailable. Please try again.")
+                                results = []
                         st.error(f"API Error: {str(e)}")
                         results = ["AI Error - Please try again"]
 
