@@ -1,9 +1,11 @@
 from fastapi import FastAPI
+from apscheduler.schedulers.background import BackgroundScheduler
 from ai_engine import get_recommendations
 import sqlite3
 from config import DB_PATH
 
 from cachetools import TTLCache
+from datetime import datetime
 import time
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -85,3 +87,27 @@ def search_manhwa(query: str):
     results = cursor.fetchall()
     conn.close()
     return [{"id": r[0], "title": r[1], "image": r[2] or f"https://picsum.photos/seed/{r[0]}/400/560"} for r in results]
+
+def update_trending_from_sources():
+    """Update database with latest trending from Anilist/MangaDex"""
+    try:
+        import subprocess
+        result = subprocess.run(['python3', 'auto_add_trending.py'], 
+                              capture_output=True, text=True, cwd='/workspaces/manhwa-ai-app')
+        print(f"[{datetime.now()}] Trending update: {result.stdout}")
+        clear_trending_cache()
+    except Exception as e:
+        print(f"[{datetime.now()}] Trending update failed: {e}")
+
+def clear_trending_cache():
+    """Clear trending cache"""
+    if "trending" in cache:
+        cache.pop("trending")
+    print(f"[{datetime.now()}] Cache cleared")
+
+# Setup scheduler
+scheduler = BackgroundScheduler()
+scheduler.add_job(update_trending_from_sources, 'cron', hour=2, minute=0)
+scheduler.start()
+
+print("✅ Scheduler started: Trending updates daily at 2 AM")
