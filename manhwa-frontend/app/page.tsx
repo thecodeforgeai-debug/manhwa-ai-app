@@ -44,31 +44,49 @@ export default function Home() {
       });
   }, []);
 
-  const handleSearch = () => {
+  const handleSearch = async () => {
     if (!searchQuery.trim()) {
       setSearchResults([]);
       return;
     }
-    const mockResults: Manhwa[] = Array.from({ length: 5 }, (_, i) => ({
-      id: 100 + i,
-      title: `${searchQuery} Result ${i + 1}`,
-      image: `https://via.placeholder.com/400x560`,
-    }));
-    setSearchResults(mockResults);
+    try {
+      const res = await fetch(`https://fuzzy-space-system-7v6gv6qwq79xfw5w6-8000.app.github.dev/search?query=${encodeURIComponent(searchQuery)}`);
+      const data = await res.json();
+      setSearchResults(data);
+    } catch (err) {
+      console.error("Search error:", err);
+      setSearchResults([]);
+    }
   };
 
-  const handleNeuralScan = () => {
+  const handleNeuralScan = async () => {
     setIsScanning(true);
-    setTimeout(() => {
-      const mockRecs: Manhwa[] = Array.from({ length: 4 }, (_, i) => ({
-        id: 200 + i,
-        title: `Recommended ${selectedGenres.join(', ')} ${i + 1}`,
-        image: `https://via.placeholder.com/400x200`,
-      }));
-      setRecommendations(mockRecs);
+    try {
+      const res = await fetch("https://fuzzy-space-system-7v6gv6qwq79xfw5w6-8000.app.github.dev/recommend", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ genres: selectedGenres, history: [] })
+      });
+      const data = await res.json();
+      const recs = data.recommendations || [];
+      // Fetch full details for each recommendation
+      const fullRecs = await Promise.all(
+        recs.slice(0, 4).map(async (rec: any) => {
+          try {
+            const detailRes = await fetch(`https://fuzzy-space-system-7v6gv6qwq79xfw5w6-8000.app.github.dev/manhwa/${rec.id || 0}`);
+            return await detailRes.json();
+          } catch {
+            return rec;
+          }
+        })
+      );
+      setRecommendations(fullRecs);
       setShowRecommendations(true);
+    } catch (err) {
+      console.error("Recommendation error:", err);
+    } finally {
       setIsScanning(false);
-    }, 2000);
+    }
   };
 
   const toggleGenre = (genre: string) => {

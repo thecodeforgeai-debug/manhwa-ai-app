@@ -38,21 +38,31 @@ def get_manhwa_detail(manhwa_id: int):
 @app.post("/recommend")
 def recommend(request: dict):
     genres = request.get("genres", [])
-    # mood removed
     history = request.get("history", [])
     result = get_recommendations(genres, [], "exciting", history)
     
-    if not result.get('success'):
+    if not result.get("success"):
         return {"recommendations": []}
     
-    # Parse the AI text response
-    recs_text = result.get('recommendations', '')
+    # Parse AI response
+    recs_text = result.get("recommendations", "")
     titles = []
-    for line in recs_text.split('\n'):
-        if line.startswith('**') and '.' in line:
-            title = line.split('.', 1)[1].split('**')[0].strip()
+    for line in recs_text.split("\n"):
+        if line.startswith("**") and "." in line:
+            title = line.split(".", 1)[1].split("**")[0].strip()
             titles.append(title)
     
+    # Fetch full details from database
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    recs = []
+    for title in titles[:5]:
+        cursor.execute("SELECT id, title, image_url FROM manhwa WHERE title LIKE ? LIMIT 1", (f"%{title}%",))
+        result = cursor.fetchone()
+        if result:
+            recs.append({"id": result[0], "title": result[1], "image": result[2] or "https://via.placeholder.com/400x560"})
+    conn.close()
+    return {"recommendations": recs}
     return {"recommendations": [{"title": t} for t in titles[:3]]}
 @app.get("/search")
 def search_manhwa(query: str):
