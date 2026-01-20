@@ -212,7 +212,7 @@ export default function Home() {
               <div
                 key={item.id}
                 className="group relative bg-black/40 border border-white/10 rounded-lg p-2 md:p-3 hover:border-cyan-400/50 hover:shadow-[0_0_20px_rgba(0,255,255,0.2)] transition-all duration-300 cursor-pointer overflow-hidden"
-                onClick={() => setSelectedManhwa(item)}
+                onClick={async () => { const res = await fetch(`https://fuzzy-space-system-7v6gv6qwq79xfw5w6-8000.app.github.dev/manhwa/${item.id}`); const data = await res.json(); setSelectedManhwa(data); }}
               >
                 {/* Scanline Effect */}
                 <div className="absolute inset-0 bg-[repeating-linear-gradient(0deg,transparent,transparent_2px,rgba(0,255,255,0.03)_2px,rgba(0,255,255,0.03)_4px)] pointer-events-none"></div>
