@@ -3,7 +3,12 @@ from ai_engine import get_recommendations
 import sqlite3
 from config import DB_PATH
 
+from cachetools import TTLCache
+import time
 from fastapi.middleware.cors import CORSMiddleware
+
+# Cache: stores 100 items for 5 minutes
+cache = TTLCache(maxsize=100, ttl=300)
 
 app = FastAPI()
 
@@ -16,12 +21,19 @@ app.add_middleware(
 
 @app.get("/trending")
 def get_trending():
-    """Get top 10 trending manhwa"""
+    """Get top 10 trending manhwa with caching"""
+    if "trending" in cache:
+        return cache["trending"]
+    
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     cursor.execute("SELECT id, title, genres, popularity_score, image_url FROM manhwa ORDER BY popularity_score DESC LIMIT 10")
     results = cursor.fetchall()
-    return [{"id": r[0], "title": r[1], "genres": r[2], "popularity": r[3], "image": r[4] or "https://via.placeholder.com/400x560"} for r in results]
+    conn.close()
+    
+    data = [{"id": r[0], "title": r[1], "genres": r[2], "popularity": r[3], "image": r[4] or "https://via.placeholder.com/400x560"} for r in results]
+    cache["trending"] = data
+    return data
 
 
 @app.get("/manhwa/{manhwa_id}")
