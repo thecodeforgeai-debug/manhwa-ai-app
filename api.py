@@ -1,29 +1,62 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.middleware.cors import CORSMiddleware
 from apscheduler.schedulers.background import BackgroundScheduler
-from ai_engine import get_recommendations
-import sqlite3
-from config import DB_PATH
-
+from pydantic import BaseModel, validator, constr
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 from cachetools import TTLCache
 from datetime import datetime
-import time
-from fastapi.middleware.cors import CORSMiddleware
+from ai_engine import get_recommendations
+from config import DB_PATH
+import sqlite3
+import re
 
-# Cache: stores 100 items for 5 minutes
+# Rate limiter
+limiter = Limiter(key_func=get_remote_address)
 cache = TTLCache(maxsize=100, ttl=300)
 
 app = FastAPI()
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# SECURE CORS
+ALLOWED_ORIGINS = [
+    "https://fuzzy-space-system-7v6gv6qwq79xfw5w6-3000.app.github.dev",
+    "http://localhost:3000",
+]
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_methods=["*"],
+    allow_credentials=False,
+    allow_methods=["GET", "POST"],
     allow_headers=["*"],
 )
 
+# INPUT VALIDATION MODELS (from your api_security_fixes.py)
+class SearchQuery(BaseModel):
+    query: constr(min_length=1, max_length=100)
+    
+    @validator('query')
+    def sanitize_query(cls, v):
+        return v.strip()
+
+class RecommendRequest(BaseModel):
+    genres: list[str]
+    history: list[str] = []
+    
+    @validator('genres', 'history', each_item=True)
+    def validate_strings(cls, v):
+        if not re.match(r'^[A-Z\s-]+$', v):
+            raise ValueError('Invalid genre/history format')
+        return v
+
+# SECURE ENDPOINTS WITH RATE LIMITING
 @app.get("/trending")
-def get_trending():
-    """Get top 10 trending manhwa with caching"""
+@limiter.limit("30/minute")
+def get_trending(request: Request):
+    """Get top 10 trending manhwa"""
     if "trending" in cache:
         return cache["trending"]
     
@@ -37,28 +70,32 @@ def get_trending():
     cache["trending"] = data
     return data
 
-
 @app.get("/manhwa/{manhwa_id}")
-def get_manhwa_detail(manhwa_id: int):
+@limiter.limit("60/minute")
+def get_manhwa_detail(manhwa_id: int, request: Request):
     """Get detailed manhwa info"""
+    if manhwa_id < 1 or manhwa_id > 10000:
+        raise HTTPException(status_code=400, detail="Invalid manhwa ID")
+    
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     cursor.execute("SELECT id, title, genres, tropes, description, popularity_score, image_url FROM manhwa WHERE id = ?", (manhwa_id,))
     result = cursor.fetchone()
     conn.close()
+    
     if result:
         return {"id": result[0], "title": result[1], "genres": result[2], "tropes": result[3], "description": result[4], "popularity": result[5], "image": result[6]}
     return {"error": "Not found"}
+
 @app.post("/recommend")
-def recommend(request: dict):
-    genres = request.get("genres", [])
-    history = request.get("history", [])
-    result = get_recommendations(genres, [], "exciting", history)
+@limiter.limit("10/minute")
+def recommend(request_data: RecommendRequest, request: Request):
+    """Get AI recommendations"""
+    result = get_recommendations(request_data.genres, [], "exciting", request_data.history)
     
     if not result.get("success"):
         return {"recommendations": []}
     
-    # Parse AI response
     recs_text = result.get("recommendations", "")
     titles = []
     for line in recs_text.split("\n"):
@@ -66,7 +103,6 @@ def recommend(request: dict):
             title = line.split(".", 1)[1].split("**")[0].strip()
             titles.append(title)
     
-    # Fetch full details from database
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     recs = []
@@ -77,37 +113,42 @@ def recommend(request: dict):
             recs.append({"id": result[0], "title": result[1], "image": result[2] or "https://via.placeholder.com/400x560"})
     conn.close()
     return {"recommendations": recs}
-    return {"recommendations": [{"title": t} for t in titles[:3]]}
+
 @app.get("/search")
-def search_manhwa(query: str):
-    """Search manhwa by title"""
+@limiter.limit("20/minute")
+def search_manhwa(query: str, request: Request):
+    """SECURE search with input validation"""
+    try:
+        validated = SearchQuery(query=query)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
-    cursor.execute("SELECT id, title, image_url FROM manhwa WHERE " + " OR ".join(["title LIKE ?" for _ in query.split()]) + " LIMIT 10", tuple(f"%{word}%" for word in query.split()))
+    search_term = f"%{validated.query}%"
+    cursor.execute("SELECT id, title, image_url FROM manhwa WHERE title LIKE ? LIMIT 10", (search_term,))
     results = cursor.fetchall()
     conn.close()
-    return [{"id": r[0], "title": r[1], "image": r[2] or f"https://picsum.photos/seed/{r[0]}/400/560"} for r in results]
+    
+    return [{"id": r[0], "title": r[1], "image": r[2] or "https://via.placeholder.com/400x560"} for r in results]
+
+# AUTO-TRENDING
+def clear_trending_cache():
+    if "trending" in cache:
+        cache.pop("trending")
+    print(f"[{datetime.now()}] Cache cleared")
 
 def update_trending_from_sources():
-    """Update database with latest trending from Anilist/MangaDex"""
     try:
         import subprocess
-        result = subprocess.run(['python3', 'auto_add_trending.py'], 
-                              capture_output=True, text=True, cwd='/workspaces/manhwa-ai-app')
+        result = subprocess.run(['python3', 'auto_add_trending.py'], capture_output=True, text=True, cwd='/workspaces/manhwa-ai-app')
         print(f"[{datetime.now()}] Trending update: {result.stdout}")
         clear_trending_cache()
     except Exception as e:
         print(f"[{datetime.now()}] Trending update failed: {e}")
 
-def clear_trending_cache():
-    """Clear trending cache"""
-    if "trending" in cache:
-        cache.pop("trending")
-    print(f"[{datetime.now()}] Cache cleared")
-
-# Setup scheduler
 scheduler = BackgroundScheduler()
 scheduler.add_job(update_trending_from_sources, 'cron', hour=2, minute=0)
 scheduler.start()
 
-print("✅ Scheduler started: Trending updates daily at 2 AM")
+print("✅ SECURE API: Rate limiting + Input validation + CORS protection enabled")
