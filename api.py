@@ -100,29 +100,29 @@ def get_manhwa_detail(manhwa_id: int, request: Request):
 @app.post("/recommend")
 @limiter.limit("10/minute")
 def recommend(request_data: RecommendRequest, request: Request):
-    """Get AI recommendations"""
-    result = get_recommendations(request_data.genres, [], "exciting", request_data.history)
-    
-    if not result.get("success"):
-        return {"recommendations": []}
-    
-    recs_text = result.get("recommendations", "")
-    titles = []
-    for line in recs_text.split("\n"):
-        if line.startswith("**") and "." in line:
-            title = line.split(".", 1)[1].split("**")[0].strip()
-            titles.append(title)
-    
+    """Get recommendations based on genre matching (FREE - no AI)"""
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
-    recs = []
-    for title in titles[:5]:
-        cursor.execute("SELECT id, title, image_url FROM manhwa WHERE title LIKE ? LIMIT 1", (f"%{title}%",))
-        result = cursor.fetchone()
-        if result:
-            recs.append({"id": result[0], "title": result[1], "image": result[2] or "https://via.placeholder.com/400x560"})
+    
+    # Build query to match any selected genre
+    genre_conditions = " OR ".join([f"genres LIKE ?" for _ in request_data.genres])
+    genre_params = [f"%{genre}%" for genre in request_data.genres]
+    
+    query = f"""
+        SELECT id, title, image_url, genres 
+        FROM manhwa 
+        WHERE {genre_conditions}
+        ORDER BY RANDOM()
+        LIMIT 10
+    """
+    
+    cursor.execute(query, genre_params)
+    results = cursor.fetchall()
     conn.close()
+    
+    recs = [{"id": r[0], "title": r[1], "image": r[2] or "https://via.placeholder.com/400x560", "genres": r[3]} for r in results]
     return {"recommendations": recs}
+
 
 @app.get("/search")
 @limiter.limit("20/minute")
