@@ -27,7 +27,7 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    fetch('https://verbose-meme-x57j576x7jjrh646q-8000.app.github.dev/trending')
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/trending`)
       .then(res => res.json())
       .then(data => {
         const formattedData = data.map((item: any) => ({
@@ -50,7 +50,7 @@ export default function Home() {
       return;
     }
     try {
-      const res = await fetch(`https://verbose-meme-x57j576x7jjrh646q-8000.app.github.dev/search?query=${encodeURIComponent(searchQuery)}`);
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/search?query=${encodeURIComponent(searchQuery)}`);
       const data = await res.json();
       setSearchResults(data);
     } catch (err) {
@@ -62,7 +62,7 @@ export default function Home() {
   const handleNeuralScan = async () => {
     setIsScanning(true);
     try {
-      const res = await fetch("https://verbose-meme-x57j576x7jjrh646q-8000.app.github.dev/recommend", {
+      const res = await fetch("${process.env.NEXT_PUBLIC_API_URL}/recommend", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ genres: selectedGenres, history: [] })
@@ -73,7 +73,7 @@ export default function Home() {
       const fullRecs = await Promise.all(
         recs.slice(0, 4).map(async (rec: any) => {
           try {
-            const detailRes = await fetch(`https://verbose-meme-x57j576x7jjrh646q-8000.app.github.dev/manhwa/${rec.id || 0}`);
+            const detailRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/manhwa/${rec.id || 0}`);
             return await detailRes.json();
           } catch {
             return rec;
@@ -212,7 +212,7 @@ export default function Home() {
               <div
                 key={item.id}
                 className="group relative bg-black/40 border border-white/10 rounded-lg p-2 md:p-3 hover:border-cyan-400/50 hover:shadow-[0_0_20px_rgba(0,255,255,0.2)] transition-all duration-300 cursor-pointer overflow-hidden"
-                onClick={async () => { const res = await fetch(`https://verbose-meme-x57j576x7jjrh646q-8000.app.github.dev/manhwa/${item.id}`); const data = await res.json(); setSelectedManhwa(data); }}
+                onClick={async () => { const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/manhwa/${item.id}`); const data = await res.json(); setSelectedManhwa(data); }}
               >
                 {/* Scanline Effect */}
                 <div className="absolute inset-0 bg-[repeating-linear-gradient(0deg,transparent,transparent_2px,rgba(0,255,255,0.03)_2px,rgba(0,255,255,0.03)_4px)] pointer-events-none"></div>
@@ -247,7 +247,7 @@ export default function Home() {
                 key={manhwa.id}
                 className="group relative bg-black/40 border border-white/10 rounded-lg p-2 md:p-3 h-72 md:h-96 hover:border-cyan-400/50 hover:shadow-[0_0_20px_rgba(0,255,255,0.2)] hover:-translate-y-1 transition-all duration-300 cursor-pointer overflow-hidden"
                 onClick={async () => { 
-                  const res = await fetch(`https://verbose-meme-x57j576x7jjrh646q-8000.app.github.dev/manhwa/${manhwa.id}`); 
+                  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/manhwa/${manhwa.id}`); 
                   const data = await res.json(); 
                   setSelectedManhwa(data); 
                 }}
@@ -282,7 +282,7 @@ export default function Home() {
                 key={manhwa.id}
                 className="group relative bg-black/40 border border-white/10 rounded-lg p-2 md:p-3 h-72 md:h-96 hover:border-cyan-400/50 hover:shadow-[0_0_20px_rgba(0,255,255,0.2)] hover:-translate-y-1 transition-all duration-300 cursor-pointer overflow-hidden"
                 onClick={async () => { 
-                  const res = await fetch(`https://verbose-meme-x57j576x7jjrh646q-8000.app.github.dev/manhwa/${manhwa.id}`); 
+                  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/manhwa/${manhwa.id}`); 
                   const data = await res.json(); 
                   setSelectedManhwa(data); 
                 }}
