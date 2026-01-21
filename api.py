@@ -54,13 +54,13 @@ class SearchQuery(BaseModel):
         return v.strip()
 
 class RecommendRequest(BaseModel):
-    genre: list[str]
+    genres: list[str]
     history: list[str] = []
     
-    @validator('genre', 'history', each_item=True)
+    @validator('genres', 'history', each_item=True)
     def validate_strings(cls, v):
         if not re.match(r'^[A-Z\s-]+$', v):
-            raise ValueError('Invalid genre/history format')
+            raise ValueError('Invalid genres/history format')
         return v
 
 # SECURE ENDPOINTS WITH RATE LIMITING
@@ -73,11 +73,11 @@ def get_trending(request: Request):
     
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
-    cursor.execute("SELECT id, title, genre, popularity, image_url FROM manhwa ORDER BY popularity DESC LIMIT 10")
+    cursor.execute("SELECT id, title, genres, popularity, image_url FROM manhwa ORDER BY popularity DESC LIMIT 10")
     results = cursor.fetchall()
     conn.close()
     
-    data = [{"id": r[0], "title": r[1], "genre": r[2], "popularity": r[3], "image": r[4] or "https://via.placeholder.com/400x560"} for r in results]
+    data = [{"id": r[0], "title": r[1], "genres": r[2], "popularity": r[3], "image": r[4] or "https://via.placeholder.com/400x560"} for r in results]
     cache["trending"] = data
     return data
 
@@ -90,38 +90,38 @@ def get_manhwa_detail(manhwa_id: int, request: Request):
     
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
-    cursor.execute("SELECT id, title, genre, tropes, description, popularity, image_url FROM manhwa WHERE id = ?", (manhwa_id,))
+    cursor.execute("SELECT id, title, genres, tropes, description, popularity, image_url FROM manhwa WHERE id = ?", (manhwa_id,))
     result = cursor.fetchone()
     conn.close()
     
     if result:
-        return {"id": result[0], "title": result[1], "genre": result[2], "tropes": result[3], "description": result[4], "popularity": result[5], "image": result[6]}
+        return {"id": result[0], "title": result[1], "genres": result[2], "tropes": result[3], "description": result[4], "popularity": result[5], "image": result[6]}
     return {"error": "Not found"}
 
 @app.post("/recommend")
 @limiter.limit("10/minute")
 def recommend(request_data: RecommendRequest, request: Request):
-    """Get recommendations based on genre matching (FREE - no AI)"""
+    """Get recommendations based on genres matching (FREE - no AI)"""
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     
-    # Build query to match any selected genre
-    genre_conditions = " OR ".join([f"genre LIKE ?" for _ in request_data.genre])
-    genre_params = [f"%{genre}%" for genre in request_data.genre]
+    # Build query to match any selected genres
+    genres_conditions = " OR ".join([f"genres LIKE ?" for _ in request_data.genres])
+    genres_params = [f"%{genres}%" for genres in request_data.genres]
     
     query = f"""
-        SELECT id, title, image_url, genre 
+        SELECT id, title, image_url, genres 
         FROM manhwa 
-        WHERE {genre_conditions}
+        WHERE {genres_conditions}
         ORDER BY RANDOM()
         LIMIT 10
     """
     
-    cursor.execute(query, genre_params)
+    cursor.execute(query, genres_params)
     results = cursor.fetchall()
     conn.close()
     
-    recs = [{"id": r[0], "title": r[1], "image": r[2] or "https://via.placeholder.com/400x560", "genre": r[3]} for r in results]
+    recs = [{"id": r[0], "title": r[1], "image": r[2] or "https://via.placeholder.com/400x560", "genres": r[3]} for r in results]
     return {"recommendations": recs}
 
 
