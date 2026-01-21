@@ -22,6 +22,7 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # SECURE CORS
 ALLOWED_ORIGINS = [
+    "https://manhwa-ai-app.vercel.app",
     "https://verbose-meme-x57j576x7jjrh646q-3000.app.github.dev",
     "http://localhost:3000",
 ]
