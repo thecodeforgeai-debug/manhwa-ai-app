@@ -73,7 +73,7 @@ def get_trending(request: Request):
     
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
-    cursor.execute("SELECT id, title, genres, image_url FROM manhwa ORDER BY id DESC LIMIT 10")
+    cursor.execute("SELECT id, title, image_url FROM manhwa ORDER BY id DESC LIMIT 10")
     results = cursor.fetchall()
     conn.close()
     
