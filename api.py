@@ -77,7 +77,7 @@ def get_trending(request: Request):
     results = cursor.fetchall()
     conn.close()
     
-    data = [{"id": r[0], "title": r[1], "genres": r[2], "popularity": r[3], "image": r[4] or "https://via.placeholder.com/400x560"} for r in results]
+    data = [{"id": r[0], "title": r[1], "image": r[2] or "https://via.placeholder.com/400x560"} for r in results]
     cache["trending"] = data
     return data
 
