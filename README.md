@@ -3,8 +3,7 @@ Smart manhwa recommendation platform with real-time trending data and genre-base
 
 ![Manhwa Intel Screenshot](./screenshot.png)
 
-## Live Demo
-🔗 [Coming Soon](#)
+🔗 [Live Demo](https://manhwa-ai-app.vercel.app/)
 
 ## What It Does
 - **Trending District** — Daily updated rankings pulled from Anilist & MangaDex APIs
